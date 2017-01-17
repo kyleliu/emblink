@@ -1,0 +1,268 @@
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Do not add any imports to non-//build directories here.
+# Some projects (e.g. V8) do not have non-build directories DEPS'ed in.
+import("//build_overrides/build.gni")
+import("//build/config/android/config.gni")
+import("//build/config/sanitizers/sanitizers.gni")
+
+assert(is_android)
+
+template("copy_ex") {
+  set_sources_assignment_filter([])
+  action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "data",
+                             "deps",
+                             "inputs",
+                             "sources",
+                             "testonly",
+                             "visibility",
+                           ])
+    if (!defined(sources)) {
+      sources = []
+    }
+    script = "//build/android/gyp/copy_ex.py"
+    depfile = "$target_gen_dir/$target_name.d"
+
+    _stamp_file = "$target_gen_dir/$target_name.stamp"
+    outputs = [
+      _stamp_file,
+    ]
+
+    args = [
+      "--depfile",
+      rebase_path(depfile, root_build_dir),
+      "--stamp",
+      rebase_path(_stamp_file, root_build_dir),
+      "--dest",
+      rebase_path(invoker.dest, root_build_dir),
+    ]
+    rebased_sources = rebase_path(sources, root_build_dir)
+    args += [ "--files=$rebased_sources" ]
+
+    if (defined(invoker.clear_dir) && invoker.clear_dir) {
+      args += [ "--clear" ]
+    }
+
+    if (defined(invoker.args)) {
+      args += invoker.args
+    }
+
+    if (defined(invoker.renaming_sources) &&
+        defined(invoker.renaming_destinations)) {
+      sources += invoker.renaming_sources
+      rebased_renaming_sources =
+          rebase_path(invoker.renaming_sources, root_build_dir)
+      args += [ "--renaming-sources=$rebased_renaming_sources" ]
+
+      renaming_destinations = invoker.renaming_destinations
+      args += [ "--renaming-destinations=$renaming_destinations" ]
+    }
+  }
+}
+
+template("device_isolate") {
+  testonly = true
+  _runtime_deps_file = "$target_gen_dir/$target_name.runtime_deps"
+  group("${target_name}__write_deps") {
+    forward_variables_from(invoker,
+                           [
+                             "data",
+                             "data_deps",
+                             "deps",
+                             "public_deps",
+                           ])
+    write_runtime_deps = _runtime_deps_file
+  }
+
+  action(target_name) {
+    script = "//build/android/gn/generate_isolate.py"
+    inputs = [
+      _runtime_deps_file,
+    ]
+    outputs = [
+      invoker.output,
+    ]
+    args = [
+      "--output-directory=.",
+      "--out-file",
+      rebase_path(invoker.output, root_build_dir),
+      "--runtime-deps-file",
+      rebase_path(_runtime_deps_file, root_build_dir),
+      "--apply-android-filters",
+      "--apply-device-filters",
+    ]
+    _assert_no_odd_data =
+        defined(invoker.assert_no_odd_data) && invoker.assert_no_odd_data
+    if (_assert_no_odd_data) {
+      args += [ "--assert-no-odd-data" ]
+    }
+    if (defined(invoker.command)) {
+      _isolate_dir = get_path_info(invoker.output, "dir")
+      args += [
+        "--command",
+        rebase_path(invoker.command, _isolate_dir),
+      ]
+    }
+    deps = [
+      ":${invoker.target_name}__write_deps",
+    ]
+  }
+}
+
+# Generates a script in the output bin directory which runs the test
+# target using the test runner script in build/android/test_runner.py.
+template("test_runner_script") {
+  testonly = true
+  _test_name = invoker.test_name
+  _test_type = invoker.test_type
+  _incremental_install =
+      defined(invoker.incremental_install) && invoker.incremental_install
+
+  action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "data_deps",
+                             "deps",
+                           ])
+    if (!defined(deps)) {
+      deps = []
+    }
+    if (!defined(data_deps)) {
+      data_deps = []
+    }
+
+    script = "//build/android/gyp/create_test_runner_script.py"
+    depfile = "$target_gen_dir/$target_name.d"
+
+    data_deps += [ "//build/android:test_runner_py" ]
+    data = []
+
+    test_runner_args = [
+      _test_type,
+      "--output-directory",
+      rebase_path(root_build_dir, root_build_dir),
+    ]
+
+    # apk_target is not used for native executable tests
+    # (e.g. breakpad_unittests).
+    if (defined(invoker.apk_target)) {
+      assert(!defined(invoker.executable_dist_dir))
+      deps += [ "${invoker.apk_target}__build_config" ]
+      _apk_build_config =
+          get_label_info(invoker.apk_target, "target_gen_dir") + "/" +
+          get_label_info(invoker.apk_target, "name") + ".build_config"
+      _rebased_apk_build_config = rebase_path(_apk_build_config, root_build_dir)
+      assert(_rebased_apk_build_config != "")  # Mark as used.
+    } else if (_test_type == "gtest") {
+      assert(
+          defined(invoker.executable_dist_dir),
+          "Must define either apk_target or executable_dist_dir for test_runner_script()")
+      test_runner_args += [
+        "--executable-dist-dir",
+        rebase_path(invoker.executable_dist_dir, root_build_dir),
+      ]
+    }
+
+    if (_test_type == "gtest") {
+      assert(defined(invoker.test_suite))
+      test_runner_args += [
+        "--suite",
+        invoker.test_suite,
+      ]
+    } else if (_test_type == "instrumentation") {
+      _test_apk = "@FileArg($_rebased_apk_build_config:deps_info:apk_path)"
+      if (_incremental_install) {
+        _test_apk = "@FileArg($_rebased_apk_build_config:deps_info:incremental_apk_path)"
+      }
+      test_runner_args += [ "--test-apk=$_test_apk" ]
+      if (defined(invoker.apk_under_test)) {
+        deps += [ "${invoker.apk_under_test}__build_config" ]
+        _apk_under_test_build_config =
+            get_label_info(invoker.apk_under_test, "target_gen_dir") + "/" +
+            get_label_info(invoker.apk_under_test, "name") + ".build_config"
+        _rebased_apk_under_test_build_config =
+            rebase_path(_apk_under_test_build_config, root_build_dir)
+        _apk_under_test =
+            "@FileArg($_rebased_apk_under_test_build_config:deps_info:apk_path)"
+        if (_incremental_install) {
+          _apk_under_test = "@FileArg($_rebased_apk_under_test_build_config:deps_info:incremental_apk_path)"
+        }
+        test_runner_args += [ "--apk-under-test=$_apk_under_test" ]
+      }
+      if (emma_coverage) {
+        # Set a default coverage output directory (can be overridden by user
+        # passing the same flag).
+        test_runner_args += [
+          "--coverage-dir",
+          rebase_path("$root_out_dir/coverage", root_build_dir),
+        ]
+      }
+    } else if (_test_type == "junit") {
+      assert(defined(invoker.test_suite))
+      test_runner_args += [
+        "--test-suite",
+        invoker.test_suite,
+      ]
+    } else {
+      assert(false, "Invalid test type: $_test_type.")
+    }
+
+    if (defined(invoker.additional_apks)) {
+      foreach(additional_apk, invoker.additional_apks) {
+        deps += [ "${additional_apk}__build_config" ]
+        _build_config = get_label_info(additional_apk, "target_gen_dir") + "/" +
+                        get_label_info(additional_apk, "name") + ".build_config"
+        _rebased_build_config = rebase_path(_build_config, root_build_dir)
+        test_runner_args += [
+          "--additional-apk",
+          "@FileArg($_rebased_build_config:deps_info:apk_path)",
+        ]
+      }
+    }
+    if (defined(invoker.isolate_file)) {
+      data += [ invoker.isolate_file ]
+      test_runner_args += [
+        "--isolate-file-path",
+        rebase_path(invoker.isolate_file, root_build_dir),
+      ]
+    }
+    if (defined(invoker.shard_timeout)) {
+      test_runner_args += [ "--shard-timeout=${invoker.shard_timeout}" ]
+    }
+    if (_incremental_install) {
+      test_runner_args += [
+        "--test-apk-incremental-install-script",
+        "@FileArg($_rebased_apk_build_config:deps_info:incremental_install_script_path)",
+      ]
+      if (defined(invoker.apk_under_test)) {
+        test_runner_args += [
+          "--apk-under-test-incremental-install-script",
+          "@FileArg($_rebased_apk_under_test_build_config:deps_info:incremental_install_script_path)",
+        ]
+      }
+      test_runner_args += [ "--fast-local-dev" ]
+    }
+    if (is_asan) {
+      test_runner_args += [ "--tool=asan" ]
+    }
+
+    generated_script = "$root_build_dir/bin/run_${_test_name}"
+    outputs = [
+      generated_script,
+    ]
+    data += [ generated_script ]
+
+    args = [
+      "--depfile",
+      rebase_path(depfile, root_build_dir),
+      "--script-output-path",
+      rebase_path(generated_script, root_build_dir),
+    ]
+    args += test_runner_args
+  }
+}
