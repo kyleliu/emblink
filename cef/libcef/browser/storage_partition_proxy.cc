@@ -76,20 +76,6 @@ CefStoragePartitionProxy::GetPlatformNotificationContext() {
   return parent_->GetPlatformNotificationContext();
 }
 
-content::BackgroundSyncContext*
-CefStoragePartitionProxy::GetBackgroundSyncContext() {
-  return parent_->GetBackgroundSyncContext();
-}
-
-content::PaymentAppContext* CefStoragePartitionProxy::GetPaymentAppContext() {
-  return parent_->GetPaymentAppContext();
-}
-
-content::BroadcastChannelProvider*
-CefStoragePartitionProxy::GetBroadcastChannelProvider() {
-  return parent_->GetBroadcastChannelProvider();
-}
-
 void CefStoragePartitionProxy::ClearDataForOrigin(
     uint32_t remove_mask,
     uint32_t quota_storage_remove_mask,
@@ -126,10 +112,5 @@ void CefStoragePartitionProxy::ClearData(
 
 void CefStoragePartitionProxy::Flush() {
   parent_->Flush();
-}
-
-void CefStoragePartitionProxy::Bind(
-    mojo::InterfaceRequest<content::mojom::StoragePartitionService> request) {
-  parent_->Bind(std::move(request));
 }
 

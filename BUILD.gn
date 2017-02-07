@@ -58,7 +58,8 @@ declare_args() {
 # over, we can collapse all of these targets as desired.
 
 group("gn_all") {
+  testonly = true
   deps = [
-    "//third_party/WebKit/public:blink",
+    "//cef:libcef",
   ]
 }

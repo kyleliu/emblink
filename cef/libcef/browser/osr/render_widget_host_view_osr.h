@@ -81,8 +81,8 @@ class MacHelper;
 #endif
 
 class CefRenderWidgetHostViewOSR
-    : public content::RenderWidgetHostViewBase,
-      public ui::CompositorDelegate
+    : public content::RenderWidgetHostViewBase
+      // public ui::CompositorDelegate
 #if !defined(OS_MACOSX)
       , public content::DelegatedFrameHostClient
 #endif
@@ -172,17 +172,13 @@ class CefRenderWidgetHostViewOSR
 
   void SetNeedsBeginFrames(bool enabled) override;
 
-  // ui::CompositorDelegate implementation.
-  std::unique_ptr<cc::SoftwareOutputDevice> CreateSoftwareOutputDevice(
-      ui::Compositor* compositor) override;
-
 #if !defined(OS_MACOSX)
   // DelegatedFrameHostClient implementation.
   ui::Layer* DelegatedFrameHostGetLayer() const override;
   bool DelegatedFrameHostIsVisible() const override;
   SkColor DelegatedFrameHostGetGutterColor(SkColor color) const override;
   gfx::Size DelegatedFrameHostDesiredSizeInDIP() const override;
- bool DelegatedFrameCanCreateResizeLock() const override;
+  bool DelegatedFrameCanCreateResizeLock() const override;
   std::unique_ptr<content::ResizeLock> DelegatedFrameHostCreateResizeLock(
       bool defer_compositor_lock) override;
   void DelegatedFrameHostResizeLockWasReleased() override;
@@ -190,6 +186,7 @@ class CefRenderWidgetHostViewOSR
       int output_surface_id,
       bool is_swap_ack,
       const cc::ReturnedResourceArray& resources) override;
+  void DelegatedFrameHostOnLostCompositorResources() override;
   void SetBeginFrameSource(cc::BeginFrameSource* source) override;
   bool IsAutoResizeEnabled() const override;
 #endif  // !defined(OS_MACOSX)

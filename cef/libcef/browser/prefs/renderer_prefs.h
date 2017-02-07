@@ -27,7 +27,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry);
 // Set default values based on CEF command-line flags for preferences that are
 // available via the PrefService. Chromium command-line flags should not exist
 // for these preferences.
-void SetCommandLinePrefDefaults(CommandLinePrefStore* prefs);
+// void SetCommandLinePrefDefaults(CommandLinePrefStore* prefs);
 
 // Populate WebPreferences based on a combination of command-line values,
 // PrefService and CefBrowserSettings.

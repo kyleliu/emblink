@@ -10,7 +10,7 @@
 
 #include "base/files/file_path.h"
 #include "content/public/browser/resource_context.h"
-#include "extensions/browser/info_map.h"
+// #include "extensions/browser/info_map.h"
 #include "net/ssl/client_cert_store.h"
 
 class CefURLRequestContextGetter;
@@ -26,14 +26,8 @@ class CefURLRequestContextGetter;
 class CefResourceContext : public content::ResourceContext {
  public:
   CefResourceContext(bool is_off_the_record,
-                     extensions::InfoMap* extension_info_map,
                      CefRefPtr<CefRequestContextHandler> handler);
   ~CefResourceContext() override;
-
-  // SupportsUserData implementation.
-  Data* GetUserData(const void* key) const override;
-  void SetUserData(const void* key, Data* data) override;
-  void RemoveUserData(const void* key) override;
 
   // ResourceContext implementation.
   net::HostResolver* GetHostResolver() override;
@@ -62,9 +56,6 @@ class CefResourceContext : public content::ResourceContext {
 
   // State transferred from the BrowserContext for use on the IO thread.
   bool IsOffTheRecord() const { return is_off_the_record_; }
-  const extensions::InfoMap* GetExtensionInfoMap() const {
-    return extension_info_map_.get();
-  }
   CefRefPtr<CefRequestContextHandler> GetHandler() const { return handler_; }
 
  private:
@@ -77,7 +68,6 @@ class CefResourceContext : public content::ResourceContext {
 
   // Only accessed on the IO thread.
   bool is_off_the_record_;
-  scoped_refptr<extensions::InfoMap> extension_info_map_;
   CefRefPtr<CefRequestContextHandler> handler_;
 
   // Map (render_process_id, plugin_path) to plugin load decision.

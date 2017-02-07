@@ -33,7 +33,7 @@ CefRefPtr<CefMenuButtonImpl> CefMenuButtonImpl::Create(
     menu_button->SetText(text);
   if (with_frame)
     menu_button->root_view()->SetStyle(views::CustomButton::STYLE_BUTTON);
-  menu_button->root_view()->set_show_menu_marker(with_menu_marker);
+  // menu_button->root_view()->set_show_menu_marker(with_menu_marker);
   return menu_button;
 }
 

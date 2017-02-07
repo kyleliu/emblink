@@ -11,51 +11,12 @@
 #include "libcef/browser/thread_util.h"
 
 #include "base/logging.h"
-#include "chrome/browser/font_family_cache.h"
-#include "components/guest_view/common/guest_view_constants.h"
 #include "components/visitedlink/browser/visitedlink_master.h"
 #include "content/browser/blob_storage/chrome_blob_storage_context.h"
 #include "content/browser/resource_context_impl.h"
 #include "content/browser/streams/stream_context.h"
 #include "content/browser/webui/url_data_manager.h"
 #include "content/public/browser/storage_partition.h"
-
-namespace {
-
-bool ShouldProxyUserData(const void* key) {
-  // If this value is not proxied then multiple StoragePartitionImpl objects
-  // will be created and filesystem API access will fail, among other things.
-  if (key == content::BrowserContext::GetStoragePartitionMapUserDataKey())
-    return true;
-
-  // If these values are not proxied then blob data fails to load for the PDF
-  // extension.
-  // See also the call to InitializeResourceContext().
-  if (key == content::ChromeBlobStorageContext::GetUserDataKey() ||
-      key == content::StreamContext::GetUserDataKey()) {
-    return true;
-  }
-
-  // If this value is not proxied then CefBrowserContextImpl::GetGuestManager()
-  // returns NULL.
-  // See also CefExtensionsAPIClient::CreateGuestViewManagerDelegate.
-  if (key == guest_view::kGuestViewManagerKeyName)
-    return true;
-
-  // If this value is not proxied then there will be a use-after-free while
-  // destroying the FontFamilyCache because it will try to access the
-  // ProxyService owned by CefBrowserContextImpl (which has already been freed).
-  if (key == kFontFamilyCacheKey)
-    return true;
-
-  // If this value is not proxied WebUI will fail to load.
-  if (key == content::URLDataManager::GetUserDataKey())
-    return true;
-
-  return false;
-}
-
-}  // namespace
 
 CefBrowserContextProxy::CefBrowserContextProxy(
     CefRefPtr<CefRequestContextHandler> handler,
@@ -80,27 +41,6 @@ void CefBrowserContextProxy::Initialize() {
   // This object's CefResourceContext needs to proxy some UserData requests to
   // the parent object's CefResourceContext.
   resource_context()->set_parent(parent_->resource_context());
-}
-
-base::SupportsUserData::Data*
-    CefBrowserContextProxy::GetUserData(const void* key) const {
-  if (ShouldProxyUserData(key))
-    return parent_->GetUserData(key);
-  return BrowserContext::GetUserData(key);
-}
-
-void CefBrowserContextProxy::SetUserData(const void* key, Data* data) {
-  if (ShouldProxyUserData(key))
-    parent_->SetUserData(key, data);
-  else
-    BrowserContext::SetUserData(key, data);
-}
-
-void CefBrowserContextProxy::RemoveUserData(const void* key) {
-  if (ShouldProxyUserData(key))
-    parent_->RemoveUserData(key);
-  else
-    BrowserContext::RemoveUserData(key);
 }
 
 base::FilePath CefBrowserContextProxy::GetPath() const {

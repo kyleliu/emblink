@@ -75,9 +75,6 @@ class CefBrowserContextImpl : public CefBrowserContext,
       content::ProtocolHandlerMap* protocol_handlers,
       content::URLRequestInterceptorScopedVector request_interceptors)
       override;
-  content::StoragePartition* GetStoragePartitionProxy(
-      content::BrowserContext* browser_context,
-      content::StoragePartition* partition_impl) override;
 
   // Profile methods.
   PrefService* GetPrefs() override;

@@ -13,6 +13,7 @@ namespace content {
 class BrowserPluginGuest;
 class WebContents;
 class WebContentsViewDelegate;
+class RenderWidgetHostImpl;
 }
 
 class CefRenderWidgetHostViewOSR;
@@ -66,8 +67,7 @@ class CefWebContentsViewOSR : public content::WebContentsView,
       blink::WebDragOperationsMask allowed_ops,
       const gfx::ImageSkia& image,
       const gfx::Vector2d& image_offset,
-      const content::DragEventSourceInfo& event_info,
-      content::RenderWidgetHostImpl* source_rwh) override;
+      const content::DragEventSourceInfo& event_info) override;
   void UpdateDragCursor(blink::WebDragOperation operation) override;
 
  private:

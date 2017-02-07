@@ -51,6 +51,9 @@ extern const char kPluginPolicy_Block[];
 extern const char kEnablePreferenceTesting[];
 extern const char kEnableNetSecurityExpiration[];
 
+extern const char kProductVersion[];
+extern const char kUserAgent[];
+
 }  // namespace switches
 
 #endif  // CEF_LIBCEF_COMMON_CEF_SWITCHES_H_

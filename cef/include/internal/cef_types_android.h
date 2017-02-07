@@ -43,11 +43,11 @@
 
 // Handle types.
 #define cef_cursor_handle_t unsigned long
-#define cef_event_handle_t  unsigned long
+#define cef_event_handle_t  void*
 #define cef_window_handle_t ANativeWindow*
 
 #define kNullCursorHandle 0
-#define kNullEventHandle 0
+#define kNullEventHandle NULL
 #define kNullWindowHandle NULL
 
 #ifdef __cplusplus

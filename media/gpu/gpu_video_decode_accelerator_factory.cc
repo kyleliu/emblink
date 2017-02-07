@@ -25,8 +25,6 @@
 #include "media/gpu/vaapi_video_decode_accelerator.h"
 #include "ui/gl/gl_implementation.h"
 #endif
-#elif defined(OS_ANDROID)
-#include "media/gpu/android_video_decode_accelerator.h"
 #endif
 
 namespace media {
@@ -97,9 +95,6 @@ GpuVideoDecodeAcceleratorFactory::GetDecoderCapabilities(
 #elif defined(OS_MACOSX)
   capabilities.supported_profiles =
       VTVideoDecodeAccelerator::GetSupportedProfiles();
-#elif defined(OS_ANDROID)
-  capabilities =
-      AndroidVideoDecodeAccelerator::GetCapabilities(gpu_preferences);
 #endif
   return GpuVideoAcceleratorUtil::ConvertMediaToGpuDecodeCapabilities(
       capabilities);
@@ -136,9 +131,6 @@ GpuVideoDecodeAcceleratorFactory::CreateVDA(
 #endif
 #if defined(OS_MACOSX)
     &GpuVideoDecodeAcceleratorFactory::CreateVTVDA,
-#endif
-#if defined(OS_ANDROID)
-    &GpuVideoDecodeAcceleratorFactory::CreateAndroidVDA,
 #endif
   };
 
@@ -219,18 +211,6 @@ GpuVideoDecodeAcceleratorFactory::CreateVTVDA(
   std::unique_ptr<VideoDecodeAccelerator> decoder;
   decoder.reset(
       new VTVideoDecodeAccelerator(make_context_current_cb_, bind_image_cb_));
-  return decoder;
-}
-#endif
-
-#if defined(OS_ANDROID)
-std::unique_ptr<VideoDecodeAccelerator>
-GpuVideoDecodeAcceleratorFactory::CreateAndroidVDA(
-    const gpu::GpuDriverBugWorkarounds& workarounds,
-    const gpu::GpuPreferences& gpu_preferences) const {
-  std::unique_ptr<VideoDecodeAccelerator> decoder;
-  decoder.reset(new AndroidVideoDecodeAccelerator(make_context_current_cb_,
-                                                  get_gles2_decoder_cb_));
   return decoder;
 }
 #endif

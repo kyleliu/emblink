@@ -1,0 +1,20 @@
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+static_library("navigation_interception") {
+  sources = [
+    "intercept_navigation_throttle.cc",
+    "intercept_navigation_throttle.h",
+    "navigation_params.cc",
+    "navigation_params.h",
+  ]
+
+  deps = [
+    "//base",
+    "//content/public/browser",
+    "//content/public/common",
+    "//net",
+    "//ui/base",
+  ]
+}

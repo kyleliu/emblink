@@ -36,10 +36,6 @@
 #include "ui/gfx/geometry/size.h"
 #include "ui/gl/gl_image.h"
 
-#if defined(OS_ANDROID)
-#include "ui/gl/android/surface_texture.h"
-#endif
-
 namespace gpu {
 
 namespace {

@@ -8,30 +8,21 @@
 #include <utility>
 
 #include "build/build_config.h"
-#include "chrome/common/chrome_utility_messages.h"
-#include "chrome/utility/utility_message_handler.h"
 #include "mojo/public/cpp/bindings/strong_binding.h"
-#include "net/proxy/mojo_proxy_resolver_factory_impl.h"
-#include "services/service_manager/public/cpp/interface_registry.h"
+// #include "net/proxy/mojo_proxy_resolver_factory_impl.h"
+#include "services/shell/public/cpp/interface_registry.h"
 
-#if defined(OS_WIN)
-#include "chrome/utility/printing_handler.h"
-#endif
+// namespace {
 
-namespace {
+// void CreateProxyResolverFactory(
+//     net::interfaces::ProxyResolverFactoryRequest request) {
+//   mojo::MakeStrongBinding(base::MakeUnique<net::MojoProxyResolverFactoryImpl>(),
+//                           std::move(request));
+// }
 
-void CreateProxyResolverFactory(
-    net::interfaces::ProxyResolverFactoryRequest request) {
-  mojo::MakeStrongBinding(base::MakeUnique<net::MojoProxyResolverFactoryImpl>(),
-                          std::move(request));
-}
-
-}  // namespace
+// }  // namespace
 
 CefContentUtilityClient::CefContentUtilityClient() {
-#if defined(OS_WIN)
-  handlers_.push_back(new printing::PrintingHandler());
-#endif
 }
 
 CefContentUtilityClient::~CefContentUtilityClient() {
@@ -41,16 +32,16 @@ bool CefContentUtilityClient::OnMessageReceived(
     const IPC::Message& message) {
   bool handled = false;
 
-  for (Handlers::iterator it = handlers_.begin();
-       !handled && it != handlers_.end(); ++it) {
-    handled = (*it)->OnMessageReceived(message);
-  }
+  // for (Handlers::iterator it = handlers_.begin();
+  //      !handled && it != handlers_.end(); ++it) {
+  //   handled = (*it)->OnMessageReceived(message);
+  // }
 
   return handled;
 }
 
 void CefContentUtilityClient::ExposeInterfacesToBrowser(
-    service_manager::InterfaceRegistry* registry) {
-  registry->AddInterface<net::interfaces::ProxyResolverFactory>(
-      base::Bind(CreateProxyResolverFactory));
+    shell::InterfaceRegistry* registry) {
+  // registry->AddInterface<net::interfaces::ProxyResolverFactory>(
+  //     base::Bind(CreateProxyResolverFactory));
 }

@@ -8,6 +8,7 @@
 
 #include "libcef/browser/views/layout_adapter.h"
 
+#include "base/supports_user_data.h"
 #include "ui/views/view.h"
 
 namespace layout_util {
@@ -18,9 +19,9 @@ namespace {
 class UserData : public base::SupportsUserData::Data {
  public:
   static CefRefPtr<CefLayout> GetFor(const views::View* view) {
-    UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
-    if (data)
-      return data->layout_;
+    // UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
+    // if (data)
+    //   return data->layout_;
     return nullptr;
   }
 
@@ -39,7 +40,7 @@ class UserData : public base::SupportsUserData::Data {
 
     // The CefLayout previously associated with |owner_view|, if any, will be
     // destroyed by this call.
-    owner_view->SetUserData(UserDataKey(), new UserData(cef_layout));
+    // owner_view->SetUserData(UserDataKey(), new UserData(cef_layout));
   }
 
  private:

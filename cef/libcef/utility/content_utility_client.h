@@ -9,7 +9,7 @@
 #include "base/memory/scoped_vector.h"
 #include "content/public/utility/content_utility_client.h"
 
-class UtilityMessageHandler;
+// class UtilityMessageHandler;
 
 class CefContentUtilityClient : public content::ContentUtilityClient {
  public:
@@ -18,11 +18,11 @@ class CefContentUtilityClient : public content::ContentUtilityClient {
 
   bool OnMessageReceived(const IPC::Message& message) override;
   void ExposeInterfacesToBrowser(
-      service_manager::InterfaceRegistry* registry) override;
+      shell::InterfaceRegistry* registry) override;
 
  private:
-  typedef ScopedVector<UtilityMessageHandler> Handlers;
-  Handlers handlers_;
+  // typedef ScopedVector<UtilityMessageHandler> Handlers;
+  // Handlers handlers_;
 
   DISALLOW_COPY_AND_ASSIGN(CefContentUtilityClient);
 };

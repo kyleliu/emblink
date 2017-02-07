@@ -8,10 +8,10 @@
 #include <stdint.h>
 
 #include "base/macros.h"
-#include "chrome/renderer/plugins/power_saver_info.h"
 #include "components/plugins/renderer/loadable_plugin_placeholder.h"
 #include "content/public/renderer/context_menu_client.h"
 #include "content/public/renderer/render_thread_observer.h"
+#include "libcef/renderer/plugins/power_saver_info.h"
 
 enum class CefViewHostMsg_GetPluginInfo_Status;
 

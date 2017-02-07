@@ -12,8 +12,6 @@
 #include "libcef/common/cef_messages.h"
 #include "libcef/common/content_client.h"
 
-#include "extensions/common/constants.h"
-
 CefPluginServiceFilter::CefPluginServiceFilter() {
 }
 
@@ -69,15 +67,6 @@ bool CefPluginServiceFilter::IsPluginAvailable(
   }
 
   const GURL& policy_url = main_frame_origin.GetURL();
-  if (!policy_url.is_empty() &&
-      policy_url.scheme() == extensions::kExtensionScheme) {
-    // Always allow extension origins to load plugins.
-    // TODO(extensions): Revisit this decision once CEF supports more than just
-    // the PDF extension.
-    *status = CefViewHostMsg_GetPluginInfo_Status::kAllowed;
-    return true;
-  }
-
   if (handler) {
     CefRefPtr<CefWebPluginInfoImpl> pluginInfo(
         new CefWebPluginInfoImpl(*plugin));

@@ -57,6 +57,10 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
       content::WebContents* new_contents,
       bool is_windowless);
 
+  //
+  CefRefPtr<CefBrowserHostImpl> GetOwnerBrowserForView(
+    int render_process_id, int render_routing_id, bool* is_guest_view);
+
   // Called from CefContentBrowserClient::CanCreateWindow. See comments on
   // PendingPopup for more information.
   bool CanCreateWindow(
@@ -76,9 +80,7 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
   // PendingPopup for more information.
   void ShouldCreateWebContents(
     content::WebContents* web_contents,
-    const GURL& target_url,
-    content::WebContentsView** view,
-    content::RenderViewHostDelegateView** delegate_view);
+    const GURL& target_url);
 
   // Called from CefBrowserHostImpl::WebContentsCreated. See comments on
   // PendingPopup for more information.

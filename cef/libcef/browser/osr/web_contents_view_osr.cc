@@ -197,8 +197,7 @@ void CefWebContentsViewOSR::StartDragging(
     blink::WebDragOperationsMask allowed_ops,
     const gfx::ImageSkia& image,
     const gfx::Vector2d& image_offset,
-    const content::DragEventSourceInfo& event_info,
-    content::RenderWidgetHostImpl* source_rwh) {
+    const content::DragEventSourceInfo& event_info) {
   if (guest_) {
     // Based on WebContentsViewGuest::StartDragging.
     content::WebContentsImpl* embedder_web_contents =
@@ -214,9 +213,9 @@ void CefWebContentsViewOSR::StartDragging(
       content::RecordAction(
           base::UserMetricsAction("BrowserPlugin.Guest.StartDrag"));
       view->StartDragging(drop_data, allowed_ops, image, image_offset,
-                          event_info, source_rwh);
+                          event_info);
     } else {
-      embedder_web_contents->SystemDragEnded(source_rwh);
+      embedder_web_contents->SystemDragEnded();
     }
     return;
   }
@@ -228,9 +227,9 @@ void CefWebContentsViewOSR::StartDragging(
     browser = view->browser_impl();
   if (browser.get()) {
     browser->StartDragging(drop_data, allowed_ops, image, image_offset,
-                           event_info, source_rwh);
+                           event_info);
   } else if (web_contents_) {
-    web_contents_->SystemDragEnded(source_rwh);
+    web_contents_->SystemDragEnded();
   }
 }
 

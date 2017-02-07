@@ -55,8 +55,7 @@ void VideoCaptureDeviceFactory::EnumerateDeviceDescriptors(
   callback.Run(std::move(device_descriptors));
 }
 
-#if !defined(OS_MACOSX) && !defined(OS_LINUX) && !defined(OS_ANDROID) && \
-    !defined(OS_WIN)
+#if !defined(OS_MACOSX) && !defined(OS_LINUX) && !defined(OS_WIN)
 // static
 VideoCaptureDeviceFactory*
 VideoCaptureDeviceFactory::CreateVideoCaptureDeviceFactory(

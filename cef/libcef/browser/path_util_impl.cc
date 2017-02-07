@@ -7,7 +7,6 @@
 #include "base/files/file_path.h"
 #include "base/logging.h"
 #include "base/path_service.h"
-#include "chrome/common/chrome_paths.h"
 
 bool CefGetPath(PathKey key, CefString& path) {
   int pref_key = base::PATH_START;
@@ -36,7 +35,11 @@ bool CefGetPath(PathKey key, CefString& path) {
       break;
 #endif
     case PK_USER_DATA:
-      pref_key = chrome::DIR_USER_DATA;
+#if defined(OS_ANDROID)
+      pref_key = base::DIR_ANDROID_APP_DATA;
+#else
+      pref_key = base::DIR_HOME;
+#endif
       break;
     default:
       NOTREACHED() << "invalid argument";

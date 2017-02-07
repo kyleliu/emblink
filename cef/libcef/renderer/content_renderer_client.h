@@ -20,16 +20,6 @@
 #include "base/sequenced_task_runner.h"
 #include "content/public/renderer/content_renderer_client.h"
 
-namespace extensions {
-class CefExtensionsRendererClient;
-class Dispatcher;
-class DispatcherDelegate;
-class ExtensionsClient;
-class ExtensionsGuestViewContainerDispatcher;
-class ExtensionsRendererClient;
-class ResourceRequestPolicy;
-}
-
 namespace web_cache {
 class WebCacheImpl;
 }
@@ -113,7 +103,8 @@ class CefContentRendererClient : public content::ContentRendererClient,
                   bool* send_referrer) override;
   bool WillSendRequest(blink::WebFrame* frame,
                        ui::PageTransition transition_type,
-                       const blink::WebURL& url,
+                       const GURL& url,
+                       const GURL& first_party_for_cookies,
                        GURL* new_url) override;
   unsigned long long VisitedLinkHash(const char* canonical_url,
                                      size_t length) override;
@@ -147,7 +138,6 @@ class CefContentRendererClient : public content::ContentRendererClient,
   scoped_refptr<base::SequencedTaskRunner> render_task_runner_;
   std::unique_ptr<CefRenderThreadObserver> observer_;
   std::unique_ptr<web_cache::WebCacheImpl> web_cache_impl_;
-  std::unique_ptr<SpellCheck> spellcheck_;
 
   // Map of RenderView pointers to CefBrowserImpl references.
   typedef std::map<content::RenderView*, CefRefPtr<CefBrowserImpl> > BrowserMap;
@@ -161,12 +151,6 @@ class CefContentRendererClient : public content::ContentRendererClient,
   // Cross-origin white list entries that need to be registered with WebKit.
   typedef std::vector<Cef_CrossOriginWhiteListEntry_Params> CrossOriginList;
   CrossOriginList cross_origin_whitelist_entries_;
-
-  std::unique_ptr<ChromePDFPrintClient> pdf_print_client_;
-
-  std::unique_ptr<extensions::ExtensionsClient> extensions_client_;
-  std::unique_ptr<extensions::CefExtensionsRendererClient>
-      extensions_renderer_client_;
 
   int devtools_agent_count_;
   int uncaught_exception_stack_size_;

@@ -8,6 +8,7 @@
 
 #include "libcef/browser/views/view_adapter.h"
 
+#include "base/supports_user_data.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_tree_host.h"
 #include "ui/gfx/geometry/point.h"
@@ -39,16 +40,16 @@ class UserData : public base::SupportsUserData::Data {
     DCHECK(view);
 
     // The CefView should not already be registered.
-    DCHECK(!view->GetUserData(UserDataKey()));
+    // DCHECK(!view->GetUserData(UserDataKey()));
 
-    view->SetUserData(UserDataKey(), new UserData(cef_view));
+    // view->SetUserData(UserDataKey(), new UserData(cef_view));
   }
 
   static CefRefPtr<CefView> GetFor(const views::View* view) {
     DCHECK(view);
-    UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
-    if (data)
-      return data->view_ref_;
+    // UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
+    // if (data)
+    //   return data->view_ref_;
     return nullptr;
   }
 
@@ -65,9 +66,9 @@ class UserData : public base::SupportsUserData::Data {
         CefViewAdapter::GetFor(cef_view)->PassOwnership();
     DCHECK(view);
 
-    UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
-    DCHECK(data);
-    data->TakeReference();
+    // UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
+    // DCHECK(data);
+    // data->TakeReference();
 
     return view;
   }
@@ -84,9 +85,9 @@ class UserData : public base::SupportsUserData::Data {
     views::View* view = adapter->Get();
     DCHECK(view);
 
-    UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
-    DCHECK(data);
-    data->ReleaseReference();
+    // UserData* data = static_cast<UserData*>(view->GetUserData(UserDataKey()));
+    // DCHECK(data);
+    // data->ReleaseReference();
   }
 
  private:

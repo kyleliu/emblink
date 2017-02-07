@@ -15,7 +15,7 @@
 #include "base/compiler_specific.h"
 #include "base/logging.h"
 #include "cef/grit/cef_strings.h"
-#include "chrome/grit/generated_resources.h"
+// #include "chrome/grit/generated_resources.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/render_widget_host_view.h"
@@ -363,16 +363,7 @@ void CefMenuManager::CreateDefaultModel() {
         // When there are dictionary suggestions add a separator before "Add to
         // dictionary".
         model_->AddSeparator();
-      } else {
-        model_->AddItem(
-            MENU_ID_NO_SPELLING_SUGGESTIONS,
-            GetLabel(IDS_CONTENT_CONTEXT_NO_SPELLING_SUGGESTIONS));
-        model_->SetEnabled(MENU_ID_NO_SPELLING_SUGGESTIONS, false);
       }
-
-      model_->AddItem(
-            MENU_ID_ADD_TO_DICTIONARY,
-            GetLabel(IDS_CONTENT_CONTEXT_ADD_TO_DICTIONARY));
     }
   } else if (!params_.selection_text.empty()) {
     // Something is selected.

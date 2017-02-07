@@ -29,7 +29,7 @@ bool GLES2Context::Initialize(
     scoped_refptr<gpu::GpuChannelHost> gpu_channel_host,
     scoped_refptr<base::SingleThreadTaskRunner> task_runner) {
   DCHECK(gpu_channel_host);
-  gpu::SurfaceHandle surface_handle = gfx::kNullAcceleratedWidget;
+  gpu::SurfaceHandle surface_handle = gpu::kNullSurfaceHandle; //gfx::kNullAcceleratedWidget;
   // TODO(penghuang): support shared group.
   gpu::CommandBufferProxyImpl* shared_command_buffer = nullptr;
   gpu::GpuStreamId stream_id = gpu::GpuStreamId::GPU_STREAM_DEFAULT;

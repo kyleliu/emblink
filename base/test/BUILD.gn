@@ -109,12 +109,8 @@ static_library("test_support") {
     "test_simple_task_runner.h",
     "test_suite.cc",
     "test_suite.h",
-    "test_support_android.cc",
-    "test_support_android.h",
     "test_support_ios.h",
     "test_support_ios.mm",
-    "test_ui_thread_android.cc",
-    "test_ui_thread_android.h",
     "thread_test_helper.cc",
     "thread_test_helper.h",
     "trace_event_analyzer.cc",
@@ -138,7 +134,6 @@ static_library("test_support") {
       "launcher/test_results_tracker.cc",
       "launcher/unit_test_launcher.cc",
       "multiprocess_test.cc",
-      "multiprocess_test_android.cc",
     ]
   }
 

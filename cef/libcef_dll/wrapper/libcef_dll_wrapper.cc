@@ -388,6 +388,7 @@ CEF_GLOBAL void CefEnableHighDPISupport() {
 CEF_GLOBAL bool CefCrashReportingEnabled() {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
+
   // Execute
   int _retval = cef_crash_reporting_enabled();
 

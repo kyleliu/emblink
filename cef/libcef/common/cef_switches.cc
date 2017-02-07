@@ -119,4 +119,8 @@ const char kEnablePreferenceTesting[]     = "enable-preference-testing";
 // Enable date-based expiration of built in network security information.
 const char kEnableNetSecurityExpiration[] = "enable-net-security-expiration";
 
+
+const char kProductVersion[]                = "product-version";
+const char kUserAgent[]                     = "user-agent";
+
 }  // namespace switches

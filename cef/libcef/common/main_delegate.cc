@@ -7,8 +7,6 @@
 #include "libcef/browser/context.h"
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/command_line_impl.h"
-#include "libcef/common/crash_reporting.h"
-#include "libcef/common/extensions/extensions_util.h"
 #include "libcef/renderer/content_renderer_client.h"
 #include "libcef/utility/content_utility_client.h"
 
@@ -21,18 +19,17 @@
 #include "base/strings/string_util.h"
 #include "base/synchronization/waitable_event.h"
 #include "base/threading/thread.h"
-#include "chrome/browser/browser_process.h"
-#include "chrome/child/pdf_child_init.h"
-#include "chrome/common/chrome_constants.h"
-#include "chrome/common/chrome_paths.h"
-#include "chrome/common/chrome_switches.h"
+// #include "chrome/browser/browser_process.h"
+// #include "chrome/child/pdf_child_init.h"
+// #include "chrome/common/chrome_constants.h"
+// #include "chrome/common/chrome_paths.h"
+// #include "chrome/common/chrome_switches.h"
 #include "components/content_settings/core/common/content_settings_pattern.h"
 #include "content/public/browser/browser_main_runner.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/common/content_switches.h"
 #include "content/public/common/main_function_params.h"
-#include "extensions/common/constants.h"
-#include "pdf/pdf.h"
+// #include "pdf/pdf.h"
 #include "ui/base/layout.h"
 #include "ui/base/material_design/material_design_controller.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -165,27 +162,6 @@ const base::FilePath::CharType kPepperFlashSystemBaseDirectory[] =
 
 #endif
 
-void OverridePepperFlashSystemPluginPath() {
-  base::FilePath plugin_filename;
-#if defined(OS_WIN)
-  if (!GetSystemFlashFilename(&plugin_filename))
-    return;
-#elif defined(OS_MACOSX)
-  if (!util_mac::GetLocalLibraryDirectory(&plugin_filename))
-    return;
-  plugin_filename = plugin_filename.Append(kPepperFlashSystemBaseDirectory)
-                                   .Append(chrome::kPepperFlashPluginFilename);
-#else
-  // A system plugin is not available on other platforms.
-  return;
-#endif
-
-  if (!plugin_filename.empty()) {
-    PathService::Override(chrome::FILE_PEPPER_FLASH_SYSTEM_PLUGIN,
-                          plugin_filename);
-  }
-}
-
 #if defined(OS_LINUX)
 
 // Based on chrome/common/chrome_paths_linux.cc.
@@ -228,21 +204,21 @@ bool GetDefaultUserDataDirectory(base::FilePath* result) {
 
 #endif
 
-base::FilePath GetUserDataPath() {
-  const CefSettings& settings = CefContext::Get()->settings();
-  if (settings.user_data_path.length > 0)
-    return base::FilePath(CefString(&settings.user_data_path));
+// base::FilePath GetUserDataPath() {
+//   const CefSettings& settings = CefContext::Get()->settings();
+//   if (settings.user_data_path.length > 0)
+//     return base::FilePath(CefString(&settings.user_data_path));
 
-  base::FilePath result;
-  if (GetDefaultUserDataDirectory(&result))
-    return result;
+//   base::FilePath result;
+//   if (GetDefaultUserDataDirectory(&result))
+//     return result;
 
-  if (PathService::Get(base::DIR_TEMP, &result))
-    return result;
+//   if (PathService::Get(base::DIR_TEMP, &result))
+//     return result;
 
-  NOTREACHED();
-  return result;
-}
+//   NOTREACHED();
+//   return result;
+// }
 
 // Returns true if |scale_factor| is supported by this platform.
 // Same as ResourceBundle::IsScaleFactorSupported.
@@ -317,7 +293,7 @@ bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
 #if defined(OS_POSIX)
   // Read the crash configuration file. Platforms using Breakpad also add a
   // command-line switch. On Windows this is done from chrome_elf.
-  crash_reporting::BasicStartupComplete(command_line);
+  // crash_reporting::BasicStartupComplete(command_line);
 #endif
 
   if (process_type.empty()) {
@@ -503,9 +479,6 @@ bool CefMainDelegate::BasicStartupComplete(int* exit_code) {
 
   logging::InitLogging(log_settings);
 
-  ContentSettingsPattern::SetNonWildcardDomainNonPortScheme(
-      extensions::kExtensionScheme);
-
   content::SetContentClient(&content_client_);
 
   return false;
@@ -522,21 +495,6 @@ void CefMainDelegate::PreSandboxStartup() {
 #if defined(OS_MACOSX)
     OverrideChildProcessPath();
 #endif
-
-    OverridePepperFlashSystemPluginPath();
-
-    const base::FilePath& user_data_path = GetUserDataPath();
-    PathService::Override(chrome::DIR_USER_DATA, user_data_path);
-
-    // Path used for crash dumps.
-    PathService::Override(chrome::DIR_CRASH_DUMPS, user_data_path);
-
-    // Path used for spell checking dictionary files.
-    PathService::OverrideAndCreateIfNeeded(
-        chrome::DIR_APP_DICTIONARIES,
-        user_data_path.AppendASCII("Dictionaries"),
-        false,  // May not be an absolute path.
-        true);  // Create if necessary.
   }
 
   if (command_line->HasSwitch(switches::kDisablePackLoading))
@@ -544,17 +502,12 @@ void CefMainDelegate::PreSandboxStartup() {
 
   // Initialize crash reporting state for this process/module.
   // chrome::DIR_CRASH_DUMPS must be configured before calling this function.
-  crash_reporting::PreSandboxStartup(*command_line, process_type);
+  // crash_reporting::PreSandboxStartup(*command_line, process_type);
 
   InitializeResourceBundle();
-  chrome::InitializePDF();
 }
 
 void CefMainDelegate::SandboxInitialized(const std::string& process_type) {
-  CefContentClient::SetPDFEntryFunctions(
-      chrome_pdf::PPP_GetInterface,
-      chrome_pdf::PPP_InitializeModule,
-      chrome_pdf::PPP_ShutdownModule);
 }
 
 int CefMainDelegate::RunProcess(
@@ -603,7 +556,7 @@ void CefMainDelegate::ZygoteForked() {
   const std::string& process_type = command_line->GetSwitchValueASCII(
         switches::kProcessType);
   // Initialize crash reporting state for the newly forked process.
-  crash_reporting::ZygoteForked(command_line, process_type);
+  // crash_reporting::ZygoteForked(command_line, process_type);
 }
 #endif
 
@@ -639,7 +592,7 @@ void CefMainDelegate::InitializeResourceBundle() {
   const base::CommandLine* command_line =
       base::CommandLine::ForCurrentProcess();
   base::FilePath cef_pak_file, cef_100_percent_pak_file,
-                 cef_200_percent_pak_file, cef_extensions_pak_file,
+                 cef_200_percent_pak_file,
                  devtools_pak_file, locales_dir;
 
   base::FilePath resources_dir;
@@ -649,8 +602,6 @@ void CefMainDelegate::InitializeResourceBundle() {
   }
   if (resources_dir.empty())
     resources_dir = GetResourcesFilePath();
-  if (!resources_dir.empty())
-    PathService::Override(chrome::DIR_RESOURCES, resources_dir);
 
   if (!content_client_.pack_loading_disabled()) {
     if (!resources_dir.empty()) {
@@ -660,8 +611,6 @@ void CefMainDelegate::InitializeResourceBundle() {
           resources_dir.Append(FILE_PATH_LITERAL("cef_100_percent.pak"));
       cef_200_percent_pak_file =
           resources_dir.Append(FILE_PATH_LITERAL("cef_200_percent.pak"));
-      cef_extensions_pak_file =
-          resources_dir.Append(FILE_PATH_LITERAL("cef_extensions.pak"));
       devtools_pak_file =
           resources_dir.Append(FILE_PATH_LITERAL("devtools_resources.pak"));
     }
@@ -684,8 +633,8 @@ void CefMainDelegate::InitializeResourceBundle() {
           locale,
           &content_client_,
           ui::ResourceBundle::LOAD_COMMON_RESOURCES);
-  if (!loaded_locale.empty() && g_browser_process)
-    g_browser_process->SetApplicationLocale(loaded_locale);
+  // if (!loaded_locale.empty() && g_browser_process)
+  //   g_browser_process->SetApplicationLocale(loaded_locale);
 
   ResourceBundle& resource_bundle = ResourceBundle::GetSharedInstance();
 
@@ -725,15 +674,6 @@ void CefMainDelegate::InitializeResourceBundle() {
             cef_200_percent_pak_file, ui::SCALE_FACTOR_200P);
       } else {
         LOG(ERROR) << "Could not load cef_200_percent.pak";
-      }
-    }
-
-    if (extensions::ExtensionsEnabled()) {
-      if (base::PathExists(cef_extensions_pak_file)) {
-        resource_bundle.AddDataPackFromPath(
-            cef_extensions_pak_file, ui::SCALE_FACTOR_NONE);
-      } else {
-        LOG(ERROR) << "Could not load cef_extensions.pak";
       }
     }
 

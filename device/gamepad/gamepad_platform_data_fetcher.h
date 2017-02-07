@@ -17,7 +17,7 @@
 #include "device/gamepad/gamepad_data_fetcher_manager.h"
 
 #if defined(OS_ANDROID)
-#include "device/gamepad/gamepad_platform_data_fetcher_android.h"
+// #include "device/gamepad/gamepad_platform_data_fetcher_android.h"
 #elif defined(OS_WIN)
 #include "device/gamepad/gamepad_platform_data_fetcher_win.h"
 #include "device/gamepad/raw_input_data_fetcher_win.h"
@@ -34,7 +34,7 @@ namespace device {
 void AddGamepadPlatformDataFetchers(GamepadDataFetcherManager* manager) {
 #if defined(OS_ANDROID)
 
-  manager->AddFactory(new GamepadPlatformDataFetcherAndroid::Factory());
+  // manager->AddFactory(new GamepadPlatformDataFetcherAndroid::Factory());
 
 #elif defined(OS_WIN)
 

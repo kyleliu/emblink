@@ -45,7 +45,7 @@ SurfacesContextProvider::SurfacesContextProvider(
   attributes.lose_context_when_out_of_memory = true;
   GURL active_url;
   command_buffer_proxy_impl_ = gpu::CommandBufferProxyImpl::Create(
-      std::move(gpu_channel), widget, shared_command_buffer, stream_id,
+      std::move(gpu_channel), 0 /*widget*/, shared_command_buffer, stream_id,
       stream_priority, attributes, active_url, task_runner_);
   CHECK(command_buffer_proxy_impl_);
   command_buffer_proxy_impl_->SetSwapBuffersCompletionCallback(

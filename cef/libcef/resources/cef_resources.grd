@@ -13,11 +13,13 @@
       <include name="IDR_CEF_LICENSE_TXT" file="..\..\LICENSE.txt" type="BINDATA" />
       <include name="IDR_CEF_VERSION_HTML" file="about_version.html" type="BINDATA" />
 
-      <!-- Extension features supported by CEF. -->
-      <include name="IDR_CEF_EXTENSION_API_FEATURES" file="..\common\extensions\api\_api_features.json" type="BINDATA" />
-      <include name="IDR_CEF_BROWSER_MANIFEST_OVERLAY" file="..\common\extensions\api\browser_manifest_overlay.json" type="BINDATA" />
-      <include name="IDR_CEF_RENDERER_MANIFEST_OVERLAY" file="..\common\extensions\api\renderer_manifest_overlay.json" type="BINDATA" />
-      <include name="IDR_CEF_UTILITY_MANIFEST_OVERLAY" file="..\common\extensions\api\utility_manifest_overlay.json" type="BINDATA" />
+      <if expr="is_android">
+        <include name="IDR_MOBILE_YOUTUBE_PLUGIN_HTML" file="plugins/mobile_youtube_plugin.html" flattenhtml="true" type="BINDATA" />
+      </if>
+      <include name="IDR_BLOCKED_PLUGIN_HTML" file="plugins/blocked_plugin.html" flattenhtml="true" type="BINDATA" />
+      <include name="IDR_DISABLED_PLUGIN_HTML" file="plugins/disabled_plugin.html" flattenhtml="true" type="BINDATA" />
+      <include name="IDR_PREFER_HTML_PLUGIN_HTML" file="plugins/prefer_html_plugin.html" flattenhtml="true" type="BINDATA" />
+      <include name="IDR_PLUGIN_POSTER_HTML" file="plugins/plugin_poster.html" flattenhtml="true" type="BINDATA" />
     </includes>
   </release>
 </grit>

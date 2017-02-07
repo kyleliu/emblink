@@ -21,9 +21,7 @@ class CefBrowserPlatformDelegateOsr :
     public CefBrowserPlatformDelegateNative::WindowlessHandler {
  public:
   // CefBrowserPlatformDelegate methods:
-  void CreateViewForWebContents(
-      content::WebContentsView** view,
-      content::RenderViewHostDelegateView** delegate_view) override;
+  void CreateViewForWebContents() override;
   void WebContentsCreated(content::WebContents* web_contents) override;
   void BrowserCreated(CefBrowserHostImpl* browser) override;
   void BrowserDestroyed(CefBrowserHostImpl* browser) override;
@@ -81,8 +79,7 @@ class CefBrowserPlatformDelegateOsr :
       blink::WebDragOperationsMask allowed_ops,
       const gfx::ImageSkia& image,
       const gfx::Vector2d& image_offset,
-      const content::DragEventSourceInfo& event_info,
-      content::RenderWidgetHostImpl* source_rwh) override;
+      const content::DragEventSourceInfo& event_info) override;
   void UpdateDragCursor(blink::WebDragOperation operation) override;
   void DragSourceEndedAt(int x, int y,
                          cef_drag_operations_mask_t op) override;
@@ -104,23 +101,6 @@ class CefBrowserPlatformDelegateOsr :
 
   std::unique_ptr<CefBrowserPlatformDelegateNative> native_delegate_;
   CefWebContentsViewOSR* view_osr_;  // Not owned by this class.
-
-  // Pending drag/drop data.
-  CefRefPtr<CefDragData> drag_data_;
-  cef_drag_operations_mask_t drag_allowed_ops_;
-
-  // We keep track of the RenderWidgetHost we're dragging over. If it changes
-  // during a drag, we need to re-send the DragEnter message.
-  base::WeakPtr<content::RenderWidgetHostImpl> current_rwh_for_drag_;
-
-  // We also keep track of the RenderViewHost we're dragging over to avoid
-  // sending the drag exited message after leaving the current
-  // view. |current_rvh_for_drag_| should not be dereferenced.
-  void* current_rvh_for_drag_;
-
-  // We keep track of the RenderWidgetHost from which the current drag started,
-  // in order to properly route the drag end message to it.
-  base::WeakPtr<content::RenderWidgetHostImpl> drag_start_rwh_;
 };
 
 #endif  // CEF_LIBCEF_BROWSER_OSR_BROWSER_PLATFORM_DELEGATE_OSR_H_

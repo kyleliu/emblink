@@ -141,13 +141,6 @@ component("aura") {
   if (use_ozone) {
     deps += [ "//ui/ozone" ]
   }
-
-  if (is_android) {
-    deps += [
-      "//ui/platform_window/android",
-      "//ui/platform_window/android:platform_window_java",
-    ]
-  }
 }
 
 static_library("test_support") {

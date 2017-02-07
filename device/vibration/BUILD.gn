@@ -22,10 +22,6 @@ component("vibration") {
     "//base/third_party/dynamic_annotations",
     "//mojo/public/cpp/bindings",
   ]
-
-  if (is_android) {
-    sources -= [ "vibration_manager_impl_default.cc" ]
-  }
 }
 
 mojom("mojo_bindings") {

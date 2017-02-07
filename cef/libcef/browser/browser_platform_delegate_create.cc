@@ -18,6 +18,9 @@
 #elif defined(OS_LINUX)
 #include "libcef/browser/native/browser_platform_delegate_native_linux.h"
 #include "libcef/browser/osr/browser_platform_delegate_osr_linux.h"
+#elif defined(OS_ANDROID)
+#include "libcef/browser/native/browser_platform_delegate_native_android.h"
+#include "libcef/browser/osr/browser_platform_delegate_osr_android.h"
 #else
 #error A delegate implementation is not available for your platform.
 #endif
@@ -37,6 +40,9 @@ std::unique_ptr<CefBrowserPlatformDelegateNative> CreateNativeDelegate(
 #elif defined(OS_LINUX)
   return base::WrapUnique(
       new CefBrowserPlatformDelegateNativeLinux(window_info));
+#elif defined(OS_ANDROID)
+  return base::WrapUnique(
+      new CefBrowserPlatformDelegateNativeAndroid(window_info));
 #endif
 }
 
@@ -51,6 +57,9 @@ std::unique_ptr<CefBrowserPlatformDelegateOsr> CreateOSRDelegate(
 #elif defined(OS_LINUX)
   return base::WrapUnique(
       new CefBrowserPlatformDelegateOsrLinux(std::move(native_delegate)));
+#elif defined(OS_ANDROID)
+  return base::WrapUnique(
+      new CefBrowserPlatformDelegateOsrAndroid(std::move(native_delegate)));
 #endif
 }
 

@@ -20,9 +20,7 @@ CefBrowserPlatformDelegate::~CefBrowserPlatformDelegate() {
   DCHECK(!browser_);
 }
 
-void CefBrowserPlatformDelegate::CreateViewForWebContents(
-    content::WebContentsView** view,
-    content::RenderViewHostDelegateView** delegate_view) {
+void CefBrowserPlatformDelegate::CreateViewForWebContents() {
   NOTREACHED();
 }
 
@@ -32,10 +30,6 @@ void CefBrowserPlatformDelegate::WebContentsCreated(
 
 void CefBrowserPlatformDelegate::RenderViewCreated(
     content::RenderViewHost* render_view_host) {
-  // Indicate that the view has an external parent (namely us). This changes the
-  // default view behavior in some cases (e.g. focus handling on Linux).
-  if (!IsViewsHosted() && render_view_host->GetWidget()->GetView())
-    render_view_host->GetWidget()->GetView()->SetHasExternalParent(true);
 }
 
 void CefBrowserPlatformDelegate::BrowserCreated(CefBrowserHostImpl* browser) {
@@ -182,8 +176,7 @@ void CefBrowserPlatformDelegate::StartDragging(
     blink::WebDragOperationsMask allowed_ops,
     const gfx::ImageSkia& image,
     const gfx::Vector2d& image_offset,
-    const content::DragEventSourceInfo& event_info,
-    content::RenderWidgetHostImpl* source_rwh) {
+    const content::DragEventSourceInfo& event_info) {
   NOTREACHED();
 }
 

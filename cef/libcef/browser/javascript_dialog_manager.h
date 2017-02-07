@@ -41,9 +41,16 @@ class CefJavaScriptDialogManager : public content::JavaScriptDialogManager {
       content::WebContents* web_contents,
       bool is_reload,
       const DialogClosedCallback& callback) override;
-  void CancelDialogs(content::WebContents* web_contents,
-                     bool suppress_callbacks,
-                     bool reset_state) override;
+  bool HandleJavaScriptDialog(
+      content::WebContents* web_contents,
+      bool accept,
+      const base::string16* prompt_override) override;
+  void CancelActiveAndPendingDialogs(
+      content::WebContents* web_contents) override;
+  void ResetDialogState(content::WebContents* web_contents) override;
+  // void CancelDialogs(content::WebContents* web_contents,
+  //                    bool suppress_callbacks,
+  //                    bool reset_state) override;
 
  private:
   // Method executed by the callback passed to CefJavaScriptDialogRunner::Run.

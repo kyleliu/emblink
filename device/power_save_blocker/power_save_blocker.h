@@ -13,10 +13,6 @@
 #include "base/single_thread_task_runner.h"
 #include "device/power_save_blocker/power_save_blocker_export.h"
 
-#if defined(OS_ANDROID)
-#include "ui/android/view_android.h"
-#endif  // OS_ANDROID
-
 namespace device {
 
 // A RAII-style class to block the system from entering low-power (sleep) mode.
@@ -60,16 +56,6 @@ class DEVICE_POWER_SAVE_BLOCKER_EXPORT PowerSaveBlocker {
       scoped_refptr<base::SequencedTaskRunner> ui_task_runner,
       scoped_refptr<base::SingleThreadTaskRunner> blocking_task_runner);
   virtual ~PowerSaveBlocker();
-
-#if defined(OS_ANDROID)
-  // On Android, the kPowerSaveBlockPreventDisplaySleep type of
-  // PowerSaveBlocker should associated with a View, so the blocker can be
-  // removed by the platform. Note that |view_android| is guaranteed to be
-  // valid only for the lifetime of this call; hence it should not be cached
-  // internally.
-  DEVICE_POWER_SAVE_BLOCKER_EXPORT void InitDisplaySleepBlocker(
-      ui::ViewAndroid* view_android);
-#endif
 
  private:
   class Delegate;

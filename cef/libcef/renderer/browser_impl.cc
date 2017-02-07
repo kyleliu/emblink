@@ -208,7 +208,7 @@ size_t CefBrowserImpl::GetFrameCount() {
 
   if (render_view()->GetWebView()) {
     for (WebFrame* frame = render_view()->GetWebView()->mainFrame(); frame;
-         frame = frame->traverseNext()) {
+         frame = frame->traverseNext(false)) {
       count++;
     }
   }
@@ -224,7 +224,7 @@ void CefBrowserImpl::GetFrameIdentifiers(std::vector<int64>& identifiers) {
 
   if (render_view()->GetWebView()) {
     for (WebFrame* frame = render_view()->GetWebView()->mainFrame(); frame;
-         frame = frame->traverseNext()) {
+         frame = frame->traverseNext(false)) {
       identifiers.push_back(webkit_glue::GetIdentifier(frame));
     }
   }
@@ -238,7 +238,7 @@ void CefBrowserImpl::GetFrameNames(std::vector<CefString>& names) {
 
   if (render_view()->GetWebView()) {
     for (WebFrame* frame = render_view()->GetWebView()->mainFrame(); frame;
-         frame = frame->traverseNext()) {
+         frame = frame->traverseNext(false)) {
       names.push_back(CefString(frame->uniqueName().utf8()));
     }
   }
@@ -346,7 +346,7 @@ CefRefPtr<CefFrameImpl> CefBrowserImpl::GetWebFrameImpl(int64_t frame_id) {
   if (render_view()->GetWebView()) {
     // Check if the frame exists but we don't know about it yet.
     for (WebFrame* frame = render_view()->GetWebView()->mainFrame(); frame;
-         frame = frame->traverseNext()) {
+         frame = frame->traverseNext(false)) {
       if (webkit_glue::GetIdentifier(frame) == frame_id)
         return GetWebFrameImpl(frame);
     }

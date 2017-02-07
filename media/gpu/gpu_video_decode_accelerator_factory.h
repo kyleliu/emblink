@@ -108,11 +108,6 @@ class MEDIA_GPU_EXPORT GpuVideoDecodeAcceleratorFactory {
       const gpu::GpuDriverBugWorkarounds& workarounds,
       const gpu::GpuPreferences& gpu_preferences) const;
 #endif
-#if defined(OS_ANDROID)
-  std::unique_ptr<VideoDecodeAccelerator> CreateAndroidVDA(
-      const gpu::GpuDriverBugWorkarounds& workarounds,
-      const gpu::GpuPreferences& gpu_preferences) const;
-#endif
 
   const GetGLContextCallback get_gl_context_cb_;
   const MakeGLContextCurrentCallback make_context_current_cb_;

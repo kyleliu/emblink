@@ -7,7 +7,6 @@
 #pragma once
 
 #include "include/cef_request_context_handler.h"
-#include "libcef/browser/chrome_profile_stub.h"
 #include "libcef/browser/net/url_request_context_getter_impl.h"
 #include "libcef/browser/resource_context.h"
 
@@ -129,7 +128,7 @@ class CefExtensionSystem;
 // of this class is passed to WebContents::Create in CefBrowserHostImpl::
 // CreateInternal. Only accessed on the UI thread unless otherwise indicated.
 class CefBrowserContext
-    : public ChromeProfileStub,
+    : public content::BrowserContext,
       public base::RefCountedThreadSafe<
           CefBrowserContext, content::BrowserThread::DeleteOnUIThread> {
  public:
@@ -139,15 +138,12 @@ class CefBrowserContext
   virtual void Initialize();
 
   // BrowserContext methods.
-  content::ResourceContext* GetResourceContext() override;
-  net::URLRequestContextGetter* GetRequestContext() override;
-  net::URLRequestContextGetter* CreateMediaRequestContext() override;
-  net::URLRequestContextGetter* CreateMediaRequestContextForStoragePartition(
+  virtual content::ResourceContext* GetResourceContext();
+  virtual net::URLRequestContextGetter* GetRequestContext();
+  virtual net::URLRequestContextGetter* CreateMediaRequestContext();
+  virtual net::URLRequestContextGetter* CreateMediaRequestContextForStoragePartition(
       const base::FilePath& partition_path,
-      bool in_memory) override;
-
-  // Profile methods.
-  ChromeZoomLevelPrefs* GetZoomLevelPrefs() override;
+      bool in_memory);
 
   // Returns the settings associated with this object. Safe to call from any
   // thread.
@@ -164,6 +160,10 @@ class CefBrowserContext
   // visited links.
   virtual void AddVisitedURLs(const std::vector<GURL>& urls) = 0;
 
+  // Prefs
+  virtual PrefService* GetPrefs() = 0;
+  virtual const PrefService* GetPrefs() const = 0;
+
   // Called from CefBrowserHostImpl::RenderFrameDeleted or
   // CefMimeHandlerViewGuestDelegate::OnGuestDetached when a render frame is
   // deleted.
@@ -178,9 +178,6 @@ class CefBrowserContext
 
   CefResourceContext* resource_context() const {
     return resource_context_.get();
-  }
-  extensions::CefExtensionSystem* extension_system() const {
-    return extension_system_;
   }
 
 #if DCHECK_IS_ON()
@@ -210,9 +207,6 @@ class CefBrowserContext
   const bool is_proxy_;
 
   std::unique_ptr<CefResourceContext> resource_context_;
-
-  // Owned by the KeyedService system.
-  extensions::CefExtensionSystem* extension_system_;
 
   DISALLOW_COPY_AND_ASSIGN(CefBrowserContext);
 };

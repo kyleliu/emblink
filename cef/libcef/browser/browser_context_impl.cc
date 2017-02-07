@@ -10,13 +10,12 @@
 #include "libcef/browser/browser_context_proxy.h"
 #include "libcef/browser/context.h"
 #include "libcef/browser/download_manager_delegate.h"
-#include "libcef/browser/extensions/extension_system.h"
+#include "libcef/browser/net/proxy_service_factory.h"
 #include "libcef/browser/permissions/permission_manager.h"
 #include "libcef/browser/prefs/browser_prefs.h"
 #include "libcef/browser/ssl_host_state_delegate.h"
 #include "libcef/browser/thread_util.h"
 #include "libcef/common/cef_switches.h"
-#include "libcef/common/extensions/extensions_util.h"
 
 #include "base/command_line.h"
 #include "base/files/file_util.h"
@@ -24,11 +23,9 @@
 #include "base/logging.h"
 #include "base/strings/string_util.h"
 #include "base/threading/thread_restrictions.h"
-#include "chrome/browser/font_family_cache.h"
-#include "chrome/browser/net/proxy_service_factory.h"
-#include "chrome/browser/ui/zoom/chrome_zoom_level_prefs.h"
+// #include "chrome/browser/font_family_cache.h"
+// #include "chrome/browser/ui/zoom/chrome_zoom_level_prefs.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
-#include "components/guest_view/browser/guest_view_manager.h"
 #include "components/prefs/pref_service.h"
 #include "components/visitedlink/browser/visitedlink_event_listener.h"
 #include "components/visitedlink/browser/visitedlink_master.h"
@@ -36,8 +33,6 @@
 #include "content/public/browser/download_manager.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/storage_partition.h"
-#include "extensions/browser/extension_protocols.h"
-#include "extensions/common/constants.h"
 #include "net/proxy/proxy_config_service.h"
 
 using content::BrowserThread;
@@ -203,7 +198,7 @@ CefBrowserContextImpl::~CefBrowserContextImpl() {
 
   // The FontFamilyCache references the ProxyService so delete it before the
   // ProxyService is deleted.
-  SetUserData(&kFontFamilyCacheKey, NULL);
+  // SetUserData(&kFontFamilyCacheKey, NULL);
 
   pref_proxy_config_tracker_->DetachFromPrefService();
 
@@ -342,9 +337,10 @@ std::unique_ptr<content::ZoomLevelDelegate>
   if (cache_path_.empty())
     return std::unique_ptr<content::ZoomLevelDelegate>();
 
-  return base::WrapUnique(new ChromeZoomLevelPrefs(
-      GetPrefs(), cache_path_, partition_path,
-      zoom::ZoomEventManager::GetForBrowserContext(this)->GetWeakPtr()));
+  return std::unique_ptr<content::ZoomLevelDelegate>();
+  // return base::WrapUnique(new ChromeZoomLevelPrefs(
+  //     GetPrefs(), cache_path_, partition_path,
+  //     zoom::ZoomEventManager::GetForBrowserContext(this)->GetWeakPtr()));
 }
 
 bool CefBrowserContextImpl::IsOffTheRecord() const {
@@ -361,8 +357,7 @@ content::DownloadManagerDelegate*
 }
 
 content::BrowserPluginGuestManager* CefBrowserContextImpl::GetGuestManager() {
-  DCHECK(extensions::ExtensionsEnabled());
-  return guest_view::GuestViewManager::FromBrowserContext(this);
+  return NULL;
 }
 
 storage::SpecialStoragePolicy*
@@ -404,18 +399,6 @@ net::URLRequestContextGetter* CefBrowserContextImpl::CreateRequestContext(
       ProxyServiceFactory::CreateProxyConfigService(
           pref_proxy_config_tracker_.get()));
 
-  if (extensions::ExtensionsEnabled()) {
-    // Handle only chrome-extension:// requests. CEF does not support
-    // chrome-extension-resource:// requests (it does not store shared extension
-    // data in its installation directory).
-    extensions::InfoMap* extension_info_map =
-        extension_system()->info_map();
-    (*protocol_handlers)[extensions::kExtensionScheme] =
-        linked_ptr<net::URLRequestJobFactory::ProtocolHandler>(
-            extensions::CreateExtensionProtocolHandler(
-                IsOffTheRecord(), extension_info_map).release());
-  }
-
   url_request_getter_ = new CefURLRequestContextGetterImpl(
       settings_,
       GetPrefs(),
@@ -435,14 +418,6 @@ net::URLRequestContextGetter*
         content::ProtocolHandlerMap* protocol_handlers,
         content::URLRequestInterceptorScopedVector request_interceptors) {
   return nullptr;
-}
-
-content::StoragePartition* CefBrowserContextImpl::GetStoragePartitionProxy(
-    content::BrowserContext* browser_context,
-    content::StoragePartition* partition_impl) {
-  CefBrowserContextProxy* proxy =
-      static_cast<CefBrowserContextProxy*>(browser_context);
-  return proxy->GetOrCreateStoragePartitionProxy(partition_impl);
 }
 
 PrefService* CefBrowserContextImpl::GetPrefs() {

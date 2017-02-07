@@ -113,12 +113,6 @@ class CefURLRequestContextGetterImpl : public CefURLRequestContextGetter {
 
   std::vector<CefRefPtr<CefRequestContextHandler> > handler_list_;
 
-  BooleanPrefMember quick_check_enabled_;
-  BooleanPrefMember pac_https_url_stripping_enabled_;
-
-  // Member variables which are pointed to by the various context objects.
-  mutable BooleanPrefMember force_google_safesearch_;
-
   StringPrefMember auth_server_whitelist_;
   StringPrefMember auth_negotiate_delegate_whitelist_;
 

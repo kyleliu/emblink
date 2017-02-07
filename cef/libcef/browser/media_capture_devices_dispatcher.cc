@@ -4,7 +4,7 @@
 
 #include "libcef/browser/media_capture_devices_dispatcher.h"
 
-#include "chrome/common/pref_names.h"
+// #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/browser_thread.h"
@@ -45,10 +45,10 @@ CefMediaCaptureDevicesDispatcher::~CefMediaCaptureDevicesDispatcher() {}
 
 void CefMediaCaptureDevicesDispatcher::RegisterPrefs(
     PrefRegistrySimple* registry) {
-  registry->RegisterStringPref(prefs::kDefaultAudioCaptureDevice,
-                               std::string());
-  registry->RegisterStringPref(prefs::kDefaultVideoCaptureDevice,
-                               std::string());
+  // registry->RegisterStringPref(prefs::kDefaultAudioCaptureDevice,
+  //                              std::string());
+  // registry->RegisterStringPref(prefs::kDefaultVideoCaptureDevice,
+  //                              std::string());
 }
 
 void CefMediaCaptureDevicesDispatcher::GetDefaultDevices(
@@ -59,16 +59,16 @@ void CefMediaCaptureDevicesDispatcher::GetDefaultDevices(
   DCHECK(BrowserThread::CurrentlyOn(BrowserThread::UI));
   DCHECK(audio || video);
 
-  std::string default_device;
-  if (audio) {
-    default_device = prefs->GetString(prefs::kDefaultAudioCaptureDevice);
-    GetRequestedDevice(default_device, true, false, devices);
-  }
+  // std::string default_device;
+  // if (audio) {
+  //   default_device = prefs->GetString(prefs::kDefaultAudioCaptureDevice);
+  //   GetRequestedDevice(default_device, true, false, devices);
+  // }
 
-  if (video) {
-    default_device = prefs->GetString(prefs::kDefaultVideoCaptureDevice);
-    GetRequestedDevice(default_device, false, true, devices);
-  }
+  // if (video) {
+  //   default_device = prefs->GetString(prefs::kDefaultVideoCaptureDevice);
+  //   GetRequestedDevice(default_device, false, true, devices);
+  // }
 }
 
 void CefMediaCaptureDevicesDispatcher::GetRequestedDevice(

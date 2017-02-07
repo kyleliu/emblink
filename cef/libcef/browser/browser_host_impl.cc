@@ -17,7 +17,6 @@
 #include "libcef/browser/context.h"
 #include "libcef/browser/devtools_frontend.h"
 #include "libcef/browser/devtools_manager_delegate.h"
-#include "libcef/browser/extensions/browser_extensions_util.h"
 #include "libcef/browser/image_impl.h"
 #include "libcef/browser/media_capture_devices_dispatcher.h"
 #include "libcef/browser/navigate_params.h"
@@ -25,13 +24,11 @@
 #include "libcef/browser/net/chrome_scheme_handler.h"
 #include "libcef/browser/net/scheme_handler.h"
 #include "libcef/browser/osr/osr_util.h"
-#include "libcef/browser/printing/print_view_manager.h"
 #include "libcef/browser/request_context_impl.h"
 #include "libcef/browser/thread_util.h"
 #include "libcef/common/cef_messages.h"
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/drag_data_impl.h"
-#include "libcef/common/extensions/extensions_util.h"
 #include "libcef/common/main_delegate.h"
 #include "libcef/common/process_message_impl.h"
 #include "libcef/common/request_impl.h"
@@ -39,10 +36,8 @@
 #include "base/bind.h"
 #include "base/bind_helpers.h"
 #include "base/command_line.h"
-#include "chrome/browser/sessions/session_tab_helper.h"
-#include "chrome/browser/spellchecker/spellcheck_factory.h"
-#include "chrome/browser/spellchecker/spellcheck_service.h"
-#include "chrome/browser/ui/prefs/prefs_tab_helper.h"
+// #include "chrome/browser/sessions/session_tab_helper.h"
+// #include "chrome/browser/ui/prefs/prefs_tab_helper.h"
 #include "components/zoom/zoom_controller.h"
 #include "content/browser/renderer_host/render_view_host_impl.h"
 #include "content/browser/gpu/compositor_util.h"
@@ -62,10 +57,6 @@
 #include "content/public/browser/render_widget_host.h"
 #include "content/public/browser/resource_request_info.h"
 #include "third_party/WebKit/public/web/WebFindOptions.h"
-
-#if defined(OS_MACOSX)
-#include "components/spellcheck/browser/spellcheck_platform.h"
-#endif
 
 namespace {
 
@@ -287,11 +278,6 @@ CefRefPtr<CefBrowserHostImpl> CefBrowserHostImpl::Create(
       request_context_impl->GetBrowserContext();
   DCHECK(browser_context);
 
-  // A StoragePartitionImplMap must already exist for the BrowserContext. See
-  // additional comments in CefBrowserContextImpl::Initialize().
-  DCHECK(browser_context->GetUserData(
-      content::BrowserContext::GetStoragePartitionMapUserDataKey()));
-
   if (!create_params.request_context) {
     // Using the global request context.
     create_params.request_context = request_context_impl.get();
@@ -302,9 +288,9 @@ CefRefPtr<CefBrowserHostImpl> CefBrowserHostImpl::Create(
 
   if (platform_delegate->IsWindowless()) {
     // Create the OSR view for the WebContents.
-    platform_delegate->CreateViewForWebContents(
-        &wc_create_params.view,
-        &wc_create_params.delegate_view);
+    // platform_delegate->CreateViewForWebContents(
+    //     &wc_create_params.view,
+    //     &wc_create_params.delegate_view);
   }
 
   content::WebContents* web_contents =
@@ -736,40 +722,11 @@ void CefBrowserHostImpl::DownloadImage(
 }
 
 void CefBrowserHostImpl::Print() {
-  if (CEF_CURRENTLY_ON_UIT()) {
-    content::WebContents* actionable_contents = GetActionableWebContents();
-    if (!actionable_contents)
-      return;
-    printing::CefPrintViewManager::FromWebContents(
-        actionable_contents)->PrintNow(
-            actionable_contents->GetRenderViewHost()->GetMainFrame());
-  } else {
-    CEF_POST_TASK(CEF_UIT,
-        base::Bind(&CefBrowserHostImpl::Print, this));
-  }
 }
 
 void CefBrowserHostImpl::PrintToPDF(const CefString& path,
                                     const CefPdfPrintSettings& settings,
                                     CefRefPtr<CefPdfPrintCallback> callback) {
-  if (CEF_CURRENTLY_ON_UIT()) {
-    content::WebContents* actionable_contents = GetActionableWebContents();
-    if (!actionable_contents)
-      return;
-
-    printing::CefPrintViewManager::PdfPrintCallback pdf_callback;
-    if (callback.get()) {
-      pdf_callback = base::Bind(&CefPdfPrintCallback::OnPdfPrintFinished,
-                                callback.get(), path);
-    }
-    printing::CefPrintViewManager::FromWebContents(actionable_contents)->
-        PrintToPDF(actionable_contents->GetMainFrame(), base::FilePath(path),
-                   settings, pdf_callback);
-  } else {
-    CEF_POST_TASK(CEF_UIT,
-        base::Bind(&CefBrowserHostImpl::PrintToPDF, this, path, settings,
-                   callback));
-  }
 }
 
 void CefBrowserHostImpl::Find(int identifier, const CefString& searchText,
@@ -945,18 +902,6 @@ void CefBrowserHostImpl::AddWordToDictionary(const CefString& word) {
 
   if (!web_contents())
     return;
-
-  content::BrowserContext* browser_context =
-      web_contents()->GetBrowserContext();
-  if (browser_context) {
-    SpellcheckService* spellcheck =
-        SpellcheckServiceFactory::GetForContext(browser_context);
-    if (spellcheck)
-      spellcheck->GetCustomDictionary()->AddWord(word);
-  }
-#if defined(OS_MACOSX)
-  spellcheck_platform::AddWord(word);
-#endif
 }
 
 void CefBrowserHostImpl::WasResized() {
@@ -1415,8 +1360,7 @@ void CefBrowserHostImpl::DestroyBrowser() {
     menu_manager_->Destroy();
 
   // Notify any observers that may have state associated with this browser.
-  for (auto& observer : observers_)
-    observer.OnBrowserDestroyed(this);
+  FOR_EACH_OBSERVER(Observer, observers_, OnBrowserDestroyed(this));
 
   // Disassociate the platform delegate from this browser.
   platform_delegate_->BrowserDestroyed(this);
@@ -2111,7 +2055,7 @@ void CefBrowserHostImpl::UpdateTargetURL(content::WebContents* source,
   }
 }
 
-bool CefBrowserHostImpl::DidAddMessageToConsole(
+bool CefBrowserHostImpl::AddMessageToConsole(
     content::WebContents* source,
     int32_t level,
     const base::string16& message,
@@ -2154,12 +2098,6 @@ bool CefBrowserHostImpl::HandleContextMenu(
 }
 
 content::WebContents* CefBrowserHostImpl::GetActionableWebContents() {
-  if (web_contents() && extensions::ExtensionsEnabled()) {
-    content::WebContents* guest_contents =
-        extensions::GetFullPageGuestForOwnerContents(web_contents());
-    if (guest_contents)
-      return guest_contents;
-  }
   return web_contents();
 }
 
@@ -2242,15 +2180,13 @@ bool CefBrowserHostImpl::ShouldCreateWebContents(
     const std::string& frame_name,
     const GURL& target_url,
     const std::string& partition_id,
-    content::SessionStorageNamespace* session_storage_namespace,
-    content::WebContentsView** view,
-    content::RenderViewHostDelegateView** delegate_view) {
+    content::SessionStorageNamespace* session_storage_namespace) {
   // In cases where the navigation will occur in a new render process the
   // |route_id| value will be MSG_ROUTING_NONE here (because the existing
   // renderer will not be able to communicate with the new renderer) and
   // OpenURLFromTab will be called after WebContentsCreated.
   CefBrowserInfoManager::GetInstance()->ShouldCreateWebContents(
-      web_contents, target_url, view, delegate_view);
+      web_contents, target_url);
 
   return true;
 }
@@ -2427,9 +2363,9 @@ void CefBrowserHostImpl::RenderViewCreated(
   // The swapped out state of a RVH is determined by its main frame since
   // subframes should have their own widgets. We should never recieve creation
   // notifications for a RVH where the main frame is swapped out.
-  content::RenderViewHostImpl* render_view_host_impl =
-      static_cast<content::RenderViewHostImpl*>(render_view_host);
-  DCHECK(!render_view_host_impl->is_swapped_out());
+  // content::RenderViewHostImpl* render_view_host_impl =
+  //     static_cast<content::RenderViewHostImpl*>(render_view_host);
+  // DCHECK(!render_view_host_impl->is_swapped_out());
 
   const int render_process_id = render_view_host->GetProcess()->GetID();
   const int render_routing_id = render_view_host->GetRoutingID();
@@ -2453,10 +2389,10 @@ void CefBrowserHostImpl::RenderViewDeleted(
   // subframes should have their own widgets. Ignore deletion notification for
   // a RVH where the main frame host is swapped out. We probably shouldn't be
   // getting these notifications to begin with.
-  content::RenderViewHostImpl* render_view_host_impl =
-      static_cast<content::RenderViewHostImpl*>(render_view_host);
-  if (render_view_host_impl->is_swapped_out())
-    return;
+  // content::RenderViewHostImpl* render_view_host_impl =
+  //     static_cast<content::RenderViewHostImpl*>(render_view_host);
+  // if (render_view_host_impl->is_swapped_out())
+  //   return;
 
   const int render_process_id = render_view_host->GetProcess()->GetID();
   const int render_routing_id = render_view_host->GetRoutingID();
@@ -2866,14 +2802,7 @@ CefBrowserHostImpl::CefBrowserHostImpl(
                            CefString(), CefString(),
                            CefFrameHostImpl::kInvalidFrameId);
 
-  PrefsTabHelper::CreateForWebContents(web_contents_.get());
-  printing::CefPrintViewManager::CreateForWebContents(web_contents_.get());
-
-  if (extensions::ExtensionsEnabled()) {
-    // Used by the tabs extension API.
-    SessionTabHelper::CreateForWebContents(web_contents_.get());
-    zoom::ZoomController::CreateForWebContents(web_contents_.get());
-  }
+  // PrefsTabHelper::CreateForWebContents(web_contents_.get());
 
   // Make sure RenderViewCreated is called at least one time.
   RenderViewCreated(web_contents->GetRenderViewHost());
@@ -3017,11 +2946,10 @@ void CefBrowserHostImpl::StartDragging(
     blink::WebDragOperationsMask allowed_ops,
     const gfx::ImageSkia& image,
     const gfx::Vector2d& image_offset,
-    const content::DragEventSourceInfo& event_info,
-    content::RenderWidgetHostImpl* source_rwh) {
+    const content::DragEventSourceInfo& event_info) {
   if (platform_delegate_) {
     platform_delegate_->StartDragging(drop_data, allowed_ops, image,
-                                      image_offset, event_info, source_rwh);
+                                      image_offset, event_info);
   }
 }
 

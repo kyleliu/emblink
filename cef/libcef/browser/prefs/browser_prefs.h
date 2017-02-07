@@ -11,8 +11,8 @@ namespace base {
 class FilePath;
 }
 
+class CefBrowserContext;
 class PrefService;
-class Profile;
 
 namespace browser_prefs {
 
@@ -21,7 +21,7 @@ extern const char kUserPrefsFileName[];
 
 // Create the PrefService used to manage pref registration and storage.
 std::unique_ptr<PrefService> CreatePrefService(
-    Profile* profile,
+    CefBrowserContext* profile,
     const base::FilePath& cache_path,
     bool persist_user_preferences);
 

@@ -59,8 +59,8 @@ def write_version_header(header, chrome_version, cef_version, cpp_header_dir):
 
     year = get_year()
 
-    if not git.is_checkout('.'):
-       raise Exception('Not a valid checkout')
+    # if not git.is_checkout('.'):
+    #    raise Exception('Not a valid checkout')
 
     commit_number = git.get_commit_number()
     commit_hash = git.get_hash()
@@ -134,6 +134,8 @@ def write_version_header(header, chrome_version, cef_version, cpp_header_dir):
                   '#define CEF_API_HASH_PLATFORM "' + api_hashes['macosx'] + '"\n'+\
                   '#elif defined(OS_LINUX)\n'+\
                   '#define CEF_API_HASH_PLATFORM "' + api_hashes['linux'] + '"\n'+\
+                  '#elif defined(OS_ANDROID)\n'+\
+                  '#define CEF_API_HASH_PLATFORM "' + api_hashes['android'] + '"\n'+\
                   '#endif\n\n'+\
                   '// Returns CEF version information for the libcef library. The |entry|\n'+\
                   '// parameter describes which version component will be returned:\n'+\

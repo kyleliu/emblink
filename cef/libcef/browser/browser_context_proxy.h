@@ -26,11 +26,6 @@ class CefBrowserContextProxy : public CefBrowserContext {
   // Must be called immediately after this object is created.
   void Initialize() override;
 
-  // SupportsUserData methods.
-  Data* GetUserData(const void* key) const override;
-  void SetUserData(const void* key, Data* data) override;
-  void RemoveUserData(const void* key) override;
-
   // BrowserContext methods.
   base::FilePath GetPath() const override;
   std::unique_ptr<content::ZoomLevelDelegate> CreateZoomLevelDelegate(

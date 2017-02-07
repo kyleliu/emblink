@@ -195,10 +195,23 @@ void CefJavaScriptDialogManager::RunBeforeUnloadDialog(
                           weak_ptr_factory_.GetWeakPtr(), callback));
 }
 
-void CefJavaScriptDialogManager::CancelDialogs(
+bool CefJavaScriptDialogManager::HandleJavaScriptDialog(
     content::WebContents* web_contents,
-    bool suppress_callbacks,
-    bool reset_state) {
+    bool accept,
+    const base::string16* prompt_override) {
+  return false;
+}
+
+void CefJavaScriptDialogManager::CancelActiveAndPendingDialogs(
+    content::WebContents* web_contents) {
+  if (runner_.get() && dialog_running_) {
+    runner_->Cancel();
+    dialog_running_ = false;
+  }
+}
+
+void CefJavaScriptDialogManager::ResetDialogState(
+    content::WebContents* web_contents) {
   CefRefPtr<CefClient> client = browser_->GetClient();
   if (client.get()) {
     CefRefPtr<CefJSDialogHandler> handler = client->GetJSDialogHandler();
@@ -207,12 +220,26 @@ void CefJavaScriptDialogManager::CancelDialogs(
       handler->OnResetDialogState(browser_);
     }
   }
-
-  if (runner_.get() && dialog_running_) {
-    runner_->Cancel();
-    dialog_running_ = false;
-  }
 }
+
+// void CefJavaScriptDialogManager::CancelDialogs(
+//     content::WebContents* web_contents,
+//     bool suppress_callbacks,
+//     bool reset_state) {
+//   CefRefPtr<CefClient> client = browser_->GetClient();
+//   if (client.get()) {
+//     CefRefPtr<CefJSDialogHandler> handler = client->GetJSDialogHandler();
+//     if (handler.get()) {
+//       // Execute the user callback.
+//       handler->OnResetDialogState(browser_);
+//     }
+//   }
+
+//   if (runner_.get() && dialog_running_) {
+//     runner_->Cancel();
+//     dialog_running_ = false;
+//   }
+// }
 
 void CefJavaScriptDialogManager::DialogClosed(
     const DialogClosedCallback& callback,

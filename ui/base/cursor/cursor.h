@@ -25,6 +25,8 @@ namespace ui {
 typedef ::HCURSOR PlatformCursor;
 #elif defined(USE_X11)
 typedef unsigned long PlatformCursor;
+#elif defined(OS_ANDROID)
+typedef unsigned long PlatformCursor;
 #else
 typedef void* PlatformCursor;
 #endif

@@ -12,9 +12,7 @@
 #include "components/device_event_log/device_event_log.h"
 #include "device/usb/usb_device.h"
 
-#if defined(OS_ANDROID)
-#include "device/usb/usb_service_android.h"
-#elif defined(USE_UDEV)
+#if defined(USE_UDEV)
 #include "device/usb/usb_service_linux.h"
 #else
 #include "device/usb/usb_service_impl.h"
@@ -39,9 +37,7 @@ void UsbService::Observer::WillDestroyUsbService() {}
 // static
 std::unique_ptr<UsbService> UsbService::Create(
     scoped_refptr<base::SequencedTaskRunner> blocking_task_runner) {
-#if defined(OS_ANDROID)
-  return base::WrapUnique(new UsbServiceAndroid(blocking_task_runner));
-#elif defined(USE_UDEV)
+#if defined(USE_UDEV)
   return base::WrapUnique(new UsbServiceLinux(blocking_task_runner));
 #elif defined(OS_WIN) || defined(OS_MACOSX)
   return base::WrapUnique(new UsbServiceImpl(blocking_task_runner));

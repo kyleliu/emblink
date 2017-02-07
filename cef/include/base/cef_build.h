@@ -51,6 +51,7 @@
 #elif defined(__linux__)
 #ifndef OS_LINUX
 #define OS_LINUX 1
+#endif
 #elif defined(ANDROID)
 #ifndef OS_ANDROID
 #define OS_ANDROID 1

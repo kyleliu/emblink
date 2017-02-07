@@ -26,7 +26,7 @@ class cef_api_hash:
         self.__verbose = verbose;
         self.__debug_enabled = not (self.__debugdir is None) and len(self.__debugdir) > 0;
 
-        self.platforms = [ "windows", "macosx", "linux" ];
+        self.platforms = [ "windows", "macosx", "linux", "android" ];
 
         self.platform_files = {
             "windows": [
@@ -37,6 +37,9 @@ class cef_api_hash:
                 ],
             "linux": [
                 "internal/cef_types_linux.h",
+                ],
+            "android": [
+                "internal/cef_types_android.h",
                 ]
             };
 
@@ -51,6 +54,7 @@ class cef_api_hash:
             "internal/cef_win.h",
             "internal/cef_mac.h",
             "internal/cef_linux.h",
+            "internal/cef_android.h",
             ];
 
     def calculate(self):

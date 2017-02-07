@@ -96,7 +96,7 @@ target(link_target_type, "ipc_service_sources") {
   }
   if (is_android) {
     sources += [
-      # "image_transport_surface_android.cc",
+      "image_transport_surface_android.cc",
       # "stream_texture_android.cc",
       # "stream_texture_android.h",
     ]

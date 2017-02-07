@@ -14,10 +14,8 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
-#include "chrome/grit/generated_resources.h"
-#include "chrome/grit/renderer_resources.h"
-#include "chrome/renderer/custom_menu_commands.h"
-#include "components/strings/grit/components_strings.h"
+#include "cef/grit/cef_resources.h"
+#include "cef/grit/cef_strings.h"
 #include "content/public/common/content_switches.h"
 #include "content/public/common/context_menu_params.h"
 #include "content/public/renderer/render_frame.h"
@@ -38,10 +36,6 @@
 using base::UserMetricsAction;
 using content::RenderThread;
 using content::RenderView;
-
-namespace {
-const CefPluginPlaceholder* g_last_active_menu = NULL;
-}  // namespace
 
 gin::WrapperInfo CefPluginPlaceholder::kWrapperInfo = {
     gin::kEmbedderNativeGin};
@@ -196,25 +190,6 @@ void CefPluginPlaceholder::PluginListChanged() {
 }
 
 void CefPluginPlaceholder::OnMenuAction(int request_id, unsigned action) {
-  DCHECK_EQ(context_menu_request_id_, request_id);
-  if (g_last_active_menu != this)
-    return;
-  switch (action) {
-    case chrome::MENU_COMMAND_PLUGIN_RUN: {
-      RenderThread::Get()->RecordAction(UserMetricsAction("Plugin_Load_Menu"));
-      MarkPluginEssential(
-          content::PluginInstanceThrottler::UNTHROTTLE_METHOD_BY_CLICK);
-      LoadPlugin();
-      break;
-    }
-    case chrome::MENU_COMMAND_PLUGIN_HIDE: {
-      RenderThread::Get()->RecordAction(UserMetricsAction("Plugin_Hide_Menu"));
-      HidePlugin();
-      break;
-    }
-    default:
-      NOTREACHED();
-  }
 }
 
 void CefPluginPlaceholder::OnMenuClosed(int request_id) {
@@ -229,44 +204,6 @@ v8::Local<v8::Value> CefPluginPlaceholder::GetV8Handle(
 
 void CefPluginPlaceholder::ShowContextMenu(
     const blink::WebMouseEvent& event) {
-  if (context_menu_request_id_)
-    return;  // Don't allow nested context menu requests.
-
-  content::ContextMenuParams params;
-
-  if (!title_.empty()) {
-    content::MenuItem name_item;
-    name_item.label = title_;
-    params.custom_items.push_back(name_item);
-
-    content::MenuItem separator_item;
-    separator_item.type = content::MenuItem::SEPARATOR;
-    params.custom_items.push_back(separator_item);
-  }
-
-  if (!GetPluginInfo().path.value().empty()) {
-    content::MenuItem run_item;
-    run_item.action = chrome::MENU_COMMAND_PLUGIN_RUN;
-    // Disable this menu item if the plugin is blocked by policy.
-    run_item.enabled = LoadingAllowed();
-    run_item.label = l10n_util::GetStringUTF16(IDS_CONTENT_CONTEXT_PLUGIN_RUN);
-    params.custom_items.push_back(run_item);
-  }
-
-  content::MenuItem hide_item;
-  hide_item.action = chrome::MENU_COMMAND_PLUGIN_HIDE;
-  bool is_main_frame_plugin_document =
-      GetFrame()->view()->mainFrame()->isWebLocalFrame() &&
-      GetFrame()->view()->mainFrame()->document().isPluginDocument();
-  hide_item.enabled = !is_main_frame_plugin_document;
-  hide_item.label = l10n_util::GetStringUTF16(IDS_CONTENT_CONTEXT_PLUGIN_HIDE);
-  params.custom_items.push_back(hide_item);
-
-  params.x = event.windowX;
-  params.y = event.windowY;
-
-  context_menu_request_id_ = render_frame()->ShowContextMenu(this, params);
-  g_last_active_menu = this;
 }
 
 blink::WebPlugin* CefPluginPlaceholder::CreatePlugin() {

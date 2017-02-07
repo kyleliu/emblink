@@ -10,8 +10,6 @@
 #include "libcef/browser/browser_host_impl.h"
 #include "libcef/browser/thread_util.h"
 #include "libcef/common/cef_messages.h"
-#include "libcef/common/extensions/extensions_util.h"
-#include "libcef/browser/extensions/browser_extensions_util.h"
 
 #include "base/logging.h"
 #include "content/public/browser/render_frame_host.h"
@@ -137,6 +135,33 @@ scoped_refptr<CefBrowserInfo> CefBrowserInfoManager::CreatePopupBrowserInfo(
   return browser_info;
 }
 
+CefRefPtr<CefBrowserHostImpl> CefBrowserInfoManager::GetOwnerBrowserForView(
+    int render_process_id, int render_routing_id, bool* is_guest_view) {
+  if (CEF_CURRENTLY_ON_UIT()) {
+    // Use the non-thread-safe but potentially faster approach.
+    content::RenderViewHost* host =
+        content::RenderViewHost::FromID(render_process_id, render_routing_id);
+    if (host)
+      return CefBrowserHostImpl::GetBrowserForHost(host);
+    return NULL;
+  } else {
+    // Use the thread-safe approach.
+    scoped_refptr<CefBrowserInfo> info = GetBrowserInfoForView(
+        render_process_id, render_routing_id, is_guest_view);
+    if (info.get()) {
+      CefRefPtr<CefBrowserHostImpl> browser = info->browser();
+      if (!browser.get()) {
+        LOG(WARNING) << "Found browser id " << info->browser_id() <<
+                        " but no browser object matching view process id " <<
+                        render_process_id << " and routing id " <<
+                        render_routing_id;
+      }
+      return browser;
+    }
+    return NULL;
+  }
+}
+
 bool CefBrowserInfoManager::CanCreateWindow(
     const GURL& target_url,
     const content::Referrer& referrer,
@@ -154,27 +179,10 @@ bool CefBrowserInfoManager::CanCreateWindow(
   DCHECK_GT(opener_render_frame_id, 0);
 
   bool is_guest_view = false;
-  CefRefPtr<CefBrowserHostImpl> browser = extensions::GetOwnerBrowserForView(
+  CefRefPtr<CefBrowserHostImpl> browser = GetOwnerBrowserForView(
       render_process_id, opener_render_view_id, &is_guest_view);
   DCHECK(browser.get());
   if (!browser.get()) {
-    // Cancel the popup.
-    return false;
-  }
-
-  if (is_guest_view) {
-    content::OpenURLParams params(target_url,
-                                  referrer,
-                                  disposition,
-                                  ui::PAGE_TRANSITION_LINK,
-                                  true);
-    params.user_gesture = user_gesture;
-
-    // Pass navigation to the owner browser.
-    CEF_POST_TASK(CEF_UIT,
-        base::Bind(base::IgnoreResult(&CefBrowserHostImpl::OpenURLFromTab),
-                   browser.get(), nullptr, params));
-
     // Cancel the popup.
     return false;
   }
@@ -259,9 +267,7 @@ bool CefBrowserInfoManager::CanCreateWindow(
 
 void CefBrowserInfoManager::ShouldCreateWebContents(
     content::WebContents* web_contents,
-    const GURL& target_url,
-    content::WebContentsView** view,
-    content::RenderViewHostDelegateView** delegate_view) {
+    const GURL& target_url) {
   std::unique_ptr<CefBrowserInfoManager::PendingPopup> pending_popup =
       PopPendingPopup(CefBrowserInfoManager::PendingPopup::CAN_CREATE_WINDOW,
                       web_contents->GetRenderViewHost()->GetProcess()->GetID(),
@@ -271,8 +277,7 @@ void CefBrowserInfoManager::ShouldCreateWebContents(
   DCHECK(pending_popup->platform_delegate.get());
 
   if (pending_popup->platform_delegate->IsWindowless()) {
-    pending_popup->platform_delegate->CreateViewForWebContents(view,
-                                                               delegate_view);
+    pending_popup->platform_delegate->CreateViewForWebContents();
   }
 
   pending_popup->step =
@@ -520,17 +525,6 @@ scoped_refptr<CefBrowserInfo> CefBrowserInfoManager::GetBrowserInfo(
         browser_info->render_id_manager()->add_render_view_id(
             render_view_process_id, render_view_routing_id);
       }
-      return browser_info;
-    }
-    if (extensions::ExtensionsEnabled() &&
-        ((valid_view_ids &&
-          browser_info->guest_render_id_manager()->is_render_view_id_match(
-              render_view_process_id, render_view_routing_id)) ||
-         (valid_frame_ids &&
-          browser_info->guest_render_id_manager()->is_render_frame_id_match(
-              render_frame_process_id, render_frame_routing_id)))) {
-      if (is_guest_view)
-        *is_guest_view = true;
       return browser_info;
     }
   }

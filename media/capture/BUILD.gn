@@ -163,13 +163,6 @@ test("capture_unittests") {
     "//ui/gfx:test_support",
   ]
 
-  if (is_android) {
-    deps += [
-      "//media/capture/video/android",
-      "//media/capture/video/android:capture_java",
-    ]
-  }
-
   if (is_win) {
     # TODO(jschuh): https://crbug.com/167187 fix size_t to int truncations.
     configs += [ "//build/config/compiler:no_size_t_to_int_warning" ]

@@ -497,7 +497,7 @@ CefRenderWidgetHostViewOSR::CefRenderWidgetHostViewOSR(
       new ui::Compositor(content::GetContextFactory(),
                          base::ThreadTaskRunnerHandle::Get()));
   compositor_->SetAcceleratedWidget(compositor_widget_);
-  compositor_->SetDelegate(this);
+  // compositor_->SetDelegate(this);
   compositor_->SetRootLayer(root_layer_.get());
 #endif
 
@@ -1021,19 +1021,6 @@ void CefRenderWidgetHostViewOSR::SetNeedsBeginFrames(bool enabled) {
   }
 }
 
-std::unique_ptr<cc::SoftwareOutputDevice>
-CefRenderWidgetHostViewOSR::CreateSoftwareOutputDevice(
-    ui::Compositor* compositor) {
-  DCHECK_EQ(GetCompositor(), compositor);
-  DCHECK(!copy_frame_generator_);
-  DCHECK(!software_output_device_);
-  software_output_device_ = new CefSoftwareOutputDeviceOSR(
-      compositor, transparent_,
-      base::Bind(&CefRenderWidgetHostViewOSR::OnPaint,
-                 weak_ptr_factory_.GetWeakPtr()));
-  return base::WrapUnique(software_output_device_);
-}
-
 #if !defined(OS_MACOSX)
 
 ui::Layer* CefRenderWidgetHostViewOSR::DelegatedFrameHostGetLayer() const {
@@ -1088,6 +1075,10 @@ CefRenderWidgetHostViewOSR::DelegatedFrameHostSendReclaimCompositorResources(
   render_widget_host_->Send(new ViewMsg_ReclaimCompositorResources(
       render_widget_host_->GetRoutingID(), output_surface_id, is_swap_ack,
       resources));
+}
+
+void CefRenderWidgetHostViewOSR::DelegatedFrameHostOnLostCompositorResources() {
+  
 }
 
 void CefRenderWidgetHostViewOSR::SetBeginFrameSource(

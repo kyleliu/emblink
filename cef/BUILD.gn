@@ -233,12 +233,6 @@ static_library("libcef_static") {
     "libcef/browser/browser_urlrequest_impl.h",
     "libcef/browser/browser_util.cc",
     "libcef/browser/browser_util.h",
-    "libcef/browser/chrome_browser_process_stub.cc",
-    "libcef/browser/chrome_browser_process_stub.h",
-    "libcef/browser/chrome_profile_manager_stub.cc",
-    "libcef/browser/chrome_profile_manager_stub.h",
-    "libcef/browser/chrome_profile_stub.cc",
-    "libcef/browser/chrome_profile_stub.h",
     "libcef/browser/content_browser_client.cc",
     "libcef/browser/content_browser_client.h",
     "libcef/browser/context.cc",
@@ -255,32 +249,6 @@ static_library("libcef_static") {
     "libcef/browser/download_item_impl.h",
     "libcef/browser/download_manager_delegate.cc",
     "libcef/browser/download_manager_delegate.h",
-    "libcef/browser/extensions/api/tabs/tabs_api.cc",
-    "libcef/browser/extensions/api/tabs/tabs_api.h",
-    "libcef/browser/extensions/browser_context_keyed_service_factories.cc",
-    "libcef/browser/extensions/browser_context_keyed_service_factories.h",
-    "libcef/browser/extensions/browser_extensions_util.cc",
-    "libcef/browser/extensions/browser_extensions_util.h",
-    "libcef/browser/extensions/chrome_api_registration.cc",
-    "libcef/browser/extensions/chrome_api_registration.h",
-    "libcef/browser/extensions/component_extension_resource_manager.cc",
-    "libcef/browser/extensions/component_extension_resource_manager.h",
-    "libcef/browser/extensions/extensions_api_client.cc",
-    "libcef/browser/extensions/extensions_api_client.h",
-    "libcef/browser/extensions/extensions_browser_client.cc",
-    "libcef/browser/extensions/extensions_browser_client.h",
-    "libcef/browser/extensions/extension_system.cc",
-    "libcef/browser/extensions/extension_system.h",
-    "libcef/browser/extensions/extension_system_factory.cc",
-    "libcef/browser/extensions/extension_system_factory.h",
-    "libcef/browser/extensions/extension_web_contents_observer.cc",
-    "libcef/browser/extensions/extension_web_contents_observer.h",
-    "libcef/browser/extensions/mime_handler_view_guest_delegate.cc",
-    "libcef/browser/extensions/mime_handler_view_guest_delegate.h",
-    "libcef/browser/extensions/pdf_extension_util.cc",
-    "libcef/browser/extensions/pdf_extension_util.h",
-    "libcef/browser/extensions/pdf_web_contents_helper_client.cc",
-    "libcef/browser/extensions/pdf_web_contents_helper_client.h",
     "libcef/browser/file_dialog_runner.h",
     "libcef/browser/file_dialog_manager.cc",
     "libcef/browser/file_dialog_manager.h",
@@ -315,6 +283,8 @@ static_library("libcef_static") {
     "libcef/browser/net/internal_scheme_handler.h",
     "libcef/browser/net/network_delegate.cc",
     "libcef/browser/net/network_delegate.h",
+    "libcef/browser/net/proxy_service_factory.cc",
+    "libcef/browser/net/proxy_service_factory.h",
     "libcef/browser/net/resource_request_job.cc",
     "libcef/browser/net/resource_request_job.h",
     "libcef/browser/net/scheme_handler.cc",
@@ -356,24 +326,16 @@ static_library("libcef_static") {
     "libcef/browser/permissions/permission_context.h",
     "libcef/browser/permissions/permission_manager.cc",
     "libcef/browser/permissions/permission_manager.h",
+    "libcef/browser/permissions/permission_request_id.cc",
+    "libcef/browser/permissions/permission_request_id.h",
     "libcef/browser/permissions/permission_util.cc",
     "libcef/browser/permissions/permission_util.h",
-    "libcef/browser/plugins/plugin_info_message_filter.cc",
-    "libcef/browser/plugins/plugin_info_message_filter.h",
     "libcef/browser/plugins/plugin_service_filter.cc",
     "libcef/browser/plugins/plugin_service_filter.h",
     "libcef/browser/prefs/browser_prefs.cc",
     "libcef/browser/prefs/browser_prefs.h",
     "libcef/browser/prefs/renderer_prefs.cc",
     "libcef/browser/prefs/renderer_prefs.h",
-    "libcef/browser/print_settings_impl.cc",
-    "libcef/browser/print_settings_impl.h",
-    "libcef/browser/printing/printing_message_filter.cc",
-    "libcef/browser/printing/printing_message_filter.h",
-    "libcef/browser/printing/print_view_manager.cc",
-    "libcef/browser/printing/print_view_manager.h",
-    "libcef/browser/printing/print_view_manager_base.cc",
-    "libcef/browser/printing/print_view_manager_base.h",
     "libcef/browser/process_util_impl.cc",
     "libcef/browser/resource_context.cc",
     "libcef/browser/resource_context.h",
@@ -419,18 +381,9 @@ static_library("libcef_static") {
     "libcef/common/command_line_impl.h",
     "libcef/common/content_client.cc",
     "libcef/common/content_client.h",
-    "libcef/common/crash_reporter_client.cc",
-    "libcef/common/crash_reporter_client.h",
     "libcef/common/crash_reporting.cc",
-    "libcef/common/crash_reporting.h",
     "libcef/common/drag_data_impl.cc",
     "libcef/common/drag_data_impl.h",
-    "libcef/common/extensions/chrome_generated_schemas.cc",
-    "libcef/common/extensions/chrome_generated_schemas.h",
-    "libcef/common/extensions/extensions_client.cc",
-    "libcef/common/extensions/extensions_client.h",
-    "libcef/common/extensions/extensions_util.cc",
-    "libcef/common/extensions/extensions_util.h",
     "libcef/common/file_util_impl.cc",
     "libcef/common/json_impl.cc",
     "libcef/common/main_delegate.cc",
@@ -479,8 +432,6 @@ static_library("libcef_static") {
     "libcef/common/values_impl.h",
     "libcef/common/waitable_event_impl.cc",
     "libcef/common/waitable_event_impl.h",
-    "libcef/common/widevine_loader.cc",
-    "libcef/common/widevine_loader.h",
     "libcef/renderer/browser_impl.cc",
     "libcef/renderer/browser_impl.h",
     "libcef/renderer/content_renderer_client.cc",
@@ -489,12 +440,6 @@ static_library("libcef_static") {
     "libcef/renderer/dom_document_impl.h",
     "libcef/renderer/dom_node_impl.cc",
     "libcef/renderer/dom_node_impl.h",
-    "libcef/renderer/extensions/extensions_dispatcher_delegate.cc",
-    "libcef/renderer/extensions/extensions_dispatcher_delegate.h",
-    "libcef/renderer/extensions/extensions_renderer_client.cc",
-    "libcef/renderer/extensions/extensions_renderer_client.h",
-    "libcef/renderer/extensions/print_web_view_helper_delegate.cc",
-    "libcef/renderer/extensions/print_web_view_helper_delegate.h",
     "libcef/renderer/frame_impl.cc",
     "libcef/renderer/frame_impl.h",
     "libcef/renderer/media/cef_key_systems.cc",
@@ -507,6 +452,8 @@ static_library("libcef_static") {
     "libcef/renderer/plugins/cef_plugin_placeholder.h",
     "libcef/renderer/plugins/plugin_preroller.cc",
     "libcef/renderer/plugins/plugin_preroller.h",
+    "libcef/renderer/plugins/power_saver_info.cc",
+    "libcef/renderer/plugins/power_saver_info.h",
     "libcef/renderer/render_frame_observer.cc",
     "libcef/renderer/render_frame_observer.h",
     "libcef/renderer/render_message_filter.cc",
@@ -575,8 +522,8 @@ static_library("libcef_static") {
     # "//components/cdm/renderer",
     "//components/content_settings/core/browser",
     "//components/content_settings/core/common",
-    "//components/crx_file",
-    "//components/data_use_measurement/core",
+    # "//components/crx_file",
+    # "//components/data_use_measurement/core",
     # "//components/google/core/browser",
     "//components/keyed_service/content:content",
     "//components/keyed_service/core:core",
@@ -589,11 +536,11 @@ static_library("libcef_static") {
     # "//components/printing/common",
     # "//components/printing/renderer",
     "//components/proxy_config",
-    "//components/ssl_config",
-    "//components/update_client",
+    # "//components/ssl_config",
+    # "//components/update_client",
     "//components/url_formatter",
     "//components/user_prefs",
-    "//components/version_info",
+    # "//components/version_info",
     "//components/visitedlink/browser",
     "//components/visitedlink/common",
     "//components/visitedlink/renderer",
@@ -623,8 +570,8 @@ static_library("libcef_static") {
     "//skia",
     "//storage/browser",
     "//third_party/brotli",
-    "//third_party/cld",
-    "//third_party/hunspell",
+    # "//third_party/cld",
+    # "//third_party/hunspell",
     "//third_party/leveldatabase",
     "//third_party/libxml",
     "//third_party/WebKit/public:blink",
@@ -644,9 +591,19 @@ static_library("libcef_static") {
     "//v8",
   ]
 
-  if (!is_mac) {
-    # TODO(cef): Enable for Mac once Widevine build errors are resolved.
-    deps += [ "//third_party/widevine/cdm:widevinecdmadapter" ]
+  # if (!is_mac) {
+  #   # TODO(cef): Enable for Mac once Widevine build errors are resolved.
+  #   deps += [ "//third_party/widevine/cdm:widevinecdmadapter" ]
+  # }
+
+  if (is_android) {
+    sources += [
+      "libcef/browser/native/browser_platform_delegate_native_android.cc",
+      "libcef/browser/native/browser_platform_delegate_native_android.h",
+      "libcef/browser/osr/browser_platform_delegate_osr_android.cc",
+      "libcef/browser/osr/browser_platform_delegate_osr_android.h",
+      "libcef/browser/osr/render_widget_host_view_osr_android.cc",
+    ]
   }
 
   if (is_win) {
@@ -668,8 +625,6 @@ static_library("libcef_static") {
       "libcef/browser/osr/browser_platform_delegate_osr_win.cc",
       "libcef/browser/osr/browser_platform_delegate_osr_win.h",
       "libcef/browser/osr/render_widget_host_view_osr_win.cc",
-      "libcef/common/crash_reporting_win.cc",
-      "libcef/common/crash_reporting_win.h",
     ]
 
     deps += [
@@ -686,8 +641,6 @@ static_library("libcef_static") {
       "libcef/browser/osr/browser_platform_delegate_osr_linux.cc",
       "libcef/browser/osr/browser_platform_delegate_osr_linux.h",
       "libcef/browser/osr/render_widget_host_view_osr_linux.cc",
-      "libcef/browser/printing/print_dialog_linux.cc",
-      "libcef/browser/printing/print_dialog_linux.h",
       "libcef/browser/native/window_x11.cc",
       "libcef/browser/native/window_x11.h",
     ]
@@ -716,20 +669,20 @@ static_library("libcef_static") {
     ]
   }
 
-  if (is_win || is_mac) {
-    deps += [ "//third_party/crashpad/crashpad/handler:handler_lib" ]
-  }
+  # if (is_win || is_mac) {
+  #   deps += [ "//third_party/crashpad/crashpad/handler:handler_lib" ]
+  # }
 
   if (use_x11) {
     deps += [ "//ui/events/devices/x11" ]
   }
 
-  if (is_posix && !is_mac) {
-    deps += [
-      "//components/crash/content/app",
-      "//components/crash/content/browser",
-    ]
-  }
+  # if (is_posix && !is_mac) {
+  #   deps += [
+  #     "//components/crash/content/app",
+  #     "//components/crash/content/browser",
+  #   ]
+  # }
 
   if (use_aura) {
     sources += [
@@ -917,7 +870,7 @@ template("cef_pak_scaled") {
     sources = [
       "$root_gen_dir/blink/public/resources/blink_image_resources_${percent}_percent.pak",
       # "$root_gen_dir/chrome/renderer_resources_${percent}_percent.pak",
-      "$root_gen_dir/components/components_resources_${percent}_percent.pak",
+      # "$root_gen_dir/components/components_resources_${percent}_percent.pak",
       "$root_gen_dir/content/app/resources/content_resources_${percent}_percent.pak",
       # "$root_gen_dir/extensions/extensions_browser_resources_${percent}_percent.pak",
       "$root_gen_dir/ui/resources/ui_resources_${percent}_percent.pak",
@@ -928,7 +881,7 @@ template("cef_pak_scaled") {
     # listed both here and in the libcef_static target.
     public_deps = [
       "//third_party/WebKit/public:image_resources",
-      "//components/resources:components_scaled_resources",
+      # "//components/resources:components_scaled_resources",
       "//content/app/resources",
       # "//extensions:extensions_browser_resources",
       "//ui/resources:ui_resources_grd",
@@ -1044,7 +997,7 @@ repack("pak") {
     # "$root_gen_dir/chrome/browser_resources.pak",
     # "$root_gen_dir/chrome/net_internals_resources.pak",
     # "$root_gen_dir/chrome/common_resources.pak",
-    "$root_gen_dir/components/components_resources.pak",
+    # "$root_gen_dir/components/components_resources.pak",
     "$root_gen_dir/cef/cef_resources.pak",
     "$root_gen_dir/content/browser/tracing/tracing_resources.pak",
     "$root_gen_dir/content/content_resources.pak",
@@ -1056,7 +1009,7 @@ repack("pak") {
   # listed both here and in the libcef_static target.
   public_deps = [
     "//third_party/WebKit/public:resources_grit",
-    "//components/resources:components_resources",
+    # "//components/resources:components_resources",
     ":cef_resources",
     "//content/browser/tracing:resources",
     "//content:resources",
@@ -1106,7 +1059,7 @@ make_pack_header("resources") {
     # "$root_gen_dir/chrome/grit/component_extension_resources.h",
     # "$root_gen_dir/chrome/grit/net_internals_resources.h",
     # "$root_gen_dir/chrome/grit/renderer_resources.h",
-    "$root_gen_dir/components/grit/components_resources.h",
+    # "$root_gen_dir/components/grit/components_resources.h",
     "$root_gen_dir/content/browser/tracing/grit/tracing_resources.h",
     "$root_gen_dir/content/grit/content_resources.h",
     # "$root_gen_dir/extensions/grit/extensions_browser_resources.h",
@@ -1128,7 +1081,7 @@ make_pack_header("strings") {
     # "$root_gen_dir/chrome/grit/generated_resources.h",
     # "$root_gen_dir/chrome/grit/locale_settings.h",
     # "$root_gen_dir/chrome/grit/platform_locale_settings.h",
-    "$root_gen_dir/components/strings/grit/components_strings.h",
+    # "$root_gen_dir/components/strings/grit/components_strings.h",
     "$root_gen_dir/content/app/strings/grit/content_strings.h",
     # "$root_gen_dir/extensions/strings/grit/extensions_strings.h",
     "$root_gen_dir/ui/strings/grit/ui_strings.h",

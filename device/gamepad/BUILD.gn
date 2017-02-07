@@ -24,8 +24,6 @@ component("gamepad") {
     "gamepad_pad_state_provider.cc",
     "gamepad_pad_state_provider.h",
     "gamepad_platform_data_fetcher.h",
-    "gamepad_platform_data_fetcher_android.cc",
-    "gamepad_platform_data_fetcher_android.h",
     "gamepad_platform_data_fetcher_linux.cc",
     "gamepad_platform_data_fetcher_linux.h",
     "gamepad_platform_data_fetcher_mac.h",

@@ -26,11 +26,6 @@ namespace content {
 struct MainFunctionParams;
 }
 
-namespace extensions {
-class ExtensionsBrowserClient;
-class ExtensionsClient;
-}
-
 class CefDevToolsDelegate;
 
 class CefBrowserMainParts : public content::BrowserMainParts {
@@ -62,9 +57,6 @@ class CefBrowserMainParts : public content::BrowserMainParts {
   scoped_refptr<CefBrowserContextImpl> global_browser_context_;
   CefDevToolsDelegate* devtools_delegate_;  // Deletes itself.
   std::unique_ptr<base::MessageLoop> message_loop_;
-
-  std::unique_ptr<extensions::ExtensionsClient> extensions_client_;
-  std::unique_ptr<extensions::ExtensionsBrowserClient> extensions_browser_client_;
 
   DISALLOW_COPY_AND_ASSIGN(CefBrowserMainParts);
 };

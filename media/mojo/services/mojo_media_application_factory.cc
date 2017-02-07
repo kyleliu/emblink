@@ -7,13 +7,8 @@
 #include "base/memory/ptr_util.h"
 #include "media/mojo/services/mojo_media_application.h"
 
-#if defined(OS_ANDROID)
-#include "media/mojo/services/android_mojo_media_client.h"  // nogncheck
-using DefaultClient = media::AndroidMojoMediaClient;
-#else
 #include "media/mojo/services/default_mojo_media_client.h"  // nogncheck
 using DefaultClient = media::DefaultMojoMediaClient;
-#endif
 
 namespace media {
 

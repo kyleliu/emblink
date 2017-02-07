@@ -8,12 +8,10 @@
 #include "libcef/browser/browser_info_manager.h"
 #include "libcef/browser/browser_main.h"
 #include "libcef/browser/browser_message_loop.h"
-#include "libcef/browser/chrome_browser_process_stub.h"
 #include "libcef/browser/thread_util.h"
 #include "libcef/browser/trace_subscriber.h"
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/main_delegate.h"
-#include "libcef/common/widevine_loader.h"
 #include "libcef/renderer/content_renderer_client.h"
 
 #include "base/base_switches.h"
@@ -207,8 +205,6 @@ bool CefInitialize(const CefMainArgs& args,
     return false;
   }
 
-  g_browser_process = new ChromeBrowserProcessStub();
-
   // Create the new global context object.
   g_context = new CefContext();
 
@@ -370,9 +366,6 @@ bool CefContext::Initialize(const CefMainArgs& args,
   if (exit_code >= 0)
     return false;
 
-  static_cast<ChromeBrowserProcessStub*>(g_browser_process)->Initialize(
-      *base::CommandLine::ForCurrentProcess());
-
   // Run the process. Results in a call to CefMainDelegate::RunProcess() which
   // will create the browser runner and message loop without blocking.
   exit_code = main_runner_->Run();
@@ -458,13 +451,6 @@ void CefContext::PopulateRequestContextSettings(
 void CefContext::OnContextInitialized() {
   CEF_REQUIRE_UIT();
 
-  static_cast<ChromeBrowserProcessStub*>(g_browser_process)->
-      OnContextInitialized();
-
-#if defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
-  CefWidevineLoader::GetInstance()->OnContextInitialized();
-#endif
-
   // Notify the handler.
   CefRefPtr<CefApp> app = CefContentClient::Get()->application();
   if (app.get()) {
@@ -483,8 +469,6 @@ void CefContext::FinishShutdownOnUIThread(
 
   if (trace_subscriber_.get())
     trace_subscriber_.reset(NULL);
-
-  static_cast<ChromeBrowserProcessStub*>(g_browser_process)->Shutdown();
 
   if (uithread_shutdown_event)
     uithread_shutdown_event->Signal();

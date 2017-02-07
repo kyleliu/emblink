@@ -30,7 +30,7 @@ void CefWindowDelegateView::Init(
   // ui/views/widget/widget_hwnd_utils.cc for the conversion of |params| to
   // Windows style flags.
   views::Widget::InitParams params;
-  params.parent_widget = parent_widget;
+  // params.parent_widget = parent_widget;
   params.bounds = bounds;
   params.delegate = this;
   // Set the WS_CHILD flag.

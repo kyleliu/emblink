@@ -18,10 +18,6 @@
 #include "ui/gfx/geometry/safe_integer_conversions.h"
 #include "ui/gfx/geometry/vector2d.h"
 
-#if defined(OS_ANDROID)
-#include "ui/events/android/scroller.h"
-#endif
-
 using blink::WebGestureCurve;
 
 namespace ui {
@@ -30,21 +26,21 @@ namespace {
 std::unique_ptr<GestureCurve> CreateDefaultPlatformCurve(
     const gfx::Vector2dF& initial_velocity) {
   DCHECK(!initial_velocity.IsZero());
-#if defined(OS_ANDROID)
-  auto scroller = base::MakeUnique<Scroller>(Scroller::Config());
-  scroller->Fling(0,
-                  0,
-                  initial_velocity.x(),
-                  initial_velocity.y(),
-                  INT_MIN,
-                  INT_MAX,
-                  INT_MIN,
-                  INT_MAX,
-                  base::TimeTicks());
-  return std::move(scroller);
-#else
+// #if defined(OS_ANDROID)
+//   auto scroller = base::MakeUnique<Scroller>(Scroller::Config());
+//   scroller->Fling(0,
+//                   0,
+//                   initial_velocity.x(),
+//                   initial_velocity.y(),
+//                   INT_MIN,
+//                   INT_MAX,
+//                   INT_MIN,
+//                   INT_MAX,
+//                   base::TimeTicks());
+//   return std::move(scroller);
+// #else
   return base::MakeUnique<FlingCurve>(initial_velocity, base::TimeTicks());
-#endif
+// #endif
 }
 
 }  // namespace

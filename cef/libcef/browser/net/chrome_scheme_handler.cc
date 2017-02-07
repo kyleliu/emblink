@@ -29,9 +29,9 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
 #include "cef/grit/cef_resources.h"
-#include "chrome/browser/browser_about_handler.h"
-#include "chrome/browser/ui/webui/chrome_web_ui_controller_factory.h"
-#include "chrome/common/url_constants.h"
+// #include "chrome/browser/browser_about_handler.h"
+// #include "chrome/browser/ui/webui/chrome_web_ui_controller_factory.h"
+// #include "chrome/common/url_constants.h"
 #include "content/browser/frame_host/debug_urls.h"
 #include "content/browser/webui/content_web_ui_controller_factory.h"
 #include "content/public/browser/browser_url_handler.h"
@@ -49,6 +49,7 @@ namespace {
 
 const char kChromeUILicenseHost[] = "license";
 const char kChromeUIWebUIHostsHost[] = "webui-hosts";
+const char kChromeUIVersionHost[] = "version";
 
 // Chrome hosts implemented by WebUI.
 // Some WebUI handlers have Chrome dependencies that may fail in CEF without
@@ -58,19 +59,15 @@ const char* kAllowedWebUIHosts[] = {
   content::kChromeUIAppCacheInternalsHost,
   content::kChromeUIAccessibilityHost,
   content::kChromeUIBlobInternalsHost,
-  chrome::kChromeUICreditsHost,
   content::kChromeUIGpuHost,
   content::kChromeUIHistogramHost,
   content::kChromeUIIndexedDBInternalsHost,
   content::kChromeUIMediaInternalsHost,
-  chrome::kChromeUINetExportHost,
-  chrome::kChromeUINetInternalsHost,
   content::kChromeUINetworkErrorHost,
   content::kChromeUINetworkErrorsListingHost,
   content::kChromeUINetworkViewCacheHost,
   content::kChromeUIResourcesHost,
   content::kChromeUIServiceWorkerInternalsHost,
-  chrome::kChromeUISystemInfoHost,
   content::kChromeUITracingHost,
   content::kChromeUIWebRTCInternalsHost,
 };
@@ -95,7 +92,7 @@ const struct {
   ChromeHostId host_id;
 } kAllowedCefHosts[] = {
   { kChromeUILicenseHost, CHROME_LICENSE },
-  { chrome::kChromeUIVersionHost, CHROME_VERSION },
+  { kChromeUIVersionHost, CHROME_VERSION },
   { kChromeUIWebUIHostsHost, CHROME_WEBUI_HOSTS },
 };
 
@@ -151,10 +148,23 @@ bool IsAllowedWebUIHost(const std::string& host) {
   return false;
 }
 
-// Additional debug URLs that are not included in chrome::kChromeDebugURLs.
-const char* kAllowedDebugURLs[] = {
+const char* const kChromeDebugURLs[] = {
+  content::kChromeUIBadCastCrashURL,
+  content::kChromeUICrashURL,
+  content::kChromeUIDumpURL,
+  content::kChromeUIKillURL,
+  content::kChromeUIHangURL,
+  content::kChromeUIShorthangURL,
+  content::kChromeUIGpuCleanURL,
+  content::kChromeUIGpuCrashURL,
+  content::kChromeUIGpuHangURL,
+  content::kChromeUIMemoryExhaustURL,
+  content::kChromeUIPpapiFlashCrashURL,
+  content::kChromeUIPpapiFlashHangURL,
   content::kChromeUIBrowserCrashURL,
 };
+const int kNumberOfChromeDebugURLs =
+    static_cast<int>(arraysize(kChromeDebugURLs));
 
 // Returns true for debug URLs that receive special handling (for crashes, etc).
 bool IsDebugURL(const GURL& url) {
@@ -165,15 +175,8 @@ bool IsDebugURL(const GURL& url) {
 
   // Also include URLs handled by the browser process in
   // content/browser/frame_host/debug_urls.cc HandleDebugURL().
-  for (int i = 0; i < chrome::kNumberOfChromeDebugURLs; ++i) {
-    GURL host(chrome::kChromeDebugURLs[i]);
-    if (url.GetOrigin() == host.GetOrigin())
-      return true;
-  }
-
-  for (size_t i = 0;
-       i < sizeof(kAllowedDebugURLs) / sizeof(kAllowedDebugURLs[0]); ++i) {
-    GURL host(kAllowedDebugURLs[i]);
+  for (int i = 0; i < kNumberOfChromeDebugURLs; ++i) {
+    GURL host(kChromeDebugURLs[i]);
     if (url.GetOrigin() == host.GetOrigin())
       return true;
   }
@@ -182,13 +185,8 @@ bool IsDebugURL(const GURL& url) {
 }
 
 void GetDebugURLs(std::vector<std::string>* urls) {
-  for (int i = 0; i < chrome::kNumberOfChromeDebugURLs; ++i) {
-    urls->push_back(chrome::kChromeDebugURLs[i]);
-  }
-
-  for (size_t i = 0;
-       i < sizeof(kAllowedDebugURLs) / sizeof(kAllowedDebugURLs[0]); ++i) {
-    urls->push_back(kAllowedDebugURLs[i]);
+  for (int i = 0; i < kNumberOfChromeDebugURLs; ++i) {
+    urls->push_back(kChromeDebugURLs[i]);
   }
 }
 
@@ -219,11 +217,6 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
     if (controller != nullptr)
       return controller;
 
-    controller = ChromeWebUIControllerFactory::GetInstance()->
-        CreateWebUIControllerForURL(web_ui, url);
-    if (controller != nullptr)
-      return controller;
-
     return nullptr;
   }
 
@@ -238,11 +231,6 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
     if (type != content::WebUI::kNoWebUI)
       return type;
 
-    type = ChromeWebUIControllerFactory::GetInstance()->GetWebUIType(
-        browser_context, url);
-    if (type != content::WebUI::kNoWebUI)
-      return type;
-
     return content::WebUI::kNoWebUI;
   }
 
@@ -252,8 +240,6 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
       return false;
 
     if (content::ContentWebUIControllerFactory::GetInstance()->UseWebUIForURL(
-            browser_context, url) ||
-        ChromeWebUIControllerFactory::GetInstance()->UseWebUIForURL(
             browser_context, url)) {
       return true;
     }
@@ -267,9 +253,7 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
       return false;
 
     if (content::ContentWebUIControllerFactory::GetInstance()->
-            UseWebUIBindingsForURL(browser_context, url) ||
-        ChromeWebUIControllerFactory::GetInstance()->UseWebUIBindingsForURL(
-            browser_context, url)) {
+            UseWebUIBindingsForURL(browser_context, url)) {
       return true;
     }
 
@@ -277,13 +261,6 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
   }
 
   static void BrowserURLHandlerCreated(content::BrowserURLHandler* handler) {
-    // about: handler. Must come before chrome: handler, since it will
-    // rewrite about: urls to chrome: URLs and then expect chrome: to
-    // actually handle them.  Also relies on a preliminary fixup phase.
-    handler->SetFixupHandler(&FixupBrowserAboutURL);
-    handler->AddHandlerPair(&WillHandleBrowserAboutURL,
-                            content::BrowserURLHandler::null_handler());
-
     // chrome: & friends.
     handler->AddHandlerPair(&HandleWebUI, &HandleWebUIReverse);
   }
@@ -312,7 +289,7 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
 
   // Maps "foo://bar/baz/" to "foo://chrome/bar/baz/".
   static GURL AddUberHost(const GURL& url) {
-    const std::string uber_host = chrome::kChromeUIUberHost;
+    const std::string uber_host = "chrome";
     std::string new_path;
     url.host_piece().AppendToString(&new_path);
     url.path_piece().AppendToString(&new_path);
@@ -324,7 +301,7 @@ class CefWebUIControllerFactory : public content::WebUIControllerFactory {
   // first slash, changes the url from "foo://chrome/bar/" to "foo://bar/" and
   // returns true. Otherwise returns false.
   static bool RemoveUberHost(GURL* url) {
-    if (url->host() != chrome::kChromeUIUberHost)
+    if (url->host() != "chrome")
       return false;
 
     if (url->path().empty() || url->path() == "/")
@@ -537,7 +514,7 @@ class Delegate : public InternalHandlerDelegate {
           url.spec().c_str();
 
       action->redirect_url =
-          GURL(std::string(kChromeURL) + chrome::kChromeUIVersionHost);
+          GURL(std::string(kChromeURL) + kChromeUIVersionHost);
       return true;
     }
 

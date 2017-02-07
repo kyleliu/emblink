@@ -14,10 +14,6 @@
 #include "ui/display/screen.h"
 #include "ui/events/event.h"
 
-#if defined(OS_ANDROID)
-#include "ui/platform_window/android/platform_window_android.h"
-#endif
-
 #if defined(USE_OZONE)
 #include "ui/ozone/public/ozone_platform.h"
 #endif
@@ -44,8 +40,6 @@ WindowTreeHostPlatform::WindowTreeHostPlatform(const gfx::Rect& bounds)
       ui::OzonePlatform::GetInstance()->CreatePlatformWindow(this, bounds);
 #elif defined(OS_WIN)
   window_.reset(new ui::WinWindow(this, bounds));
-#elif defined(OS_ANDROID)
-  window_.reset(new ui::PlatformWindowAndroid(this));
 #else
   NOTIMPLEMENTED();
 #endif

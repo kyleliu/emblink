@@ -22,16 +22,12 @@ CefBrowserPlatformDelegateOsr::CefBrowserPlatformDelegateOsr(
   native_delegate_->set_windowless_handler(this);
 }
 
-void CefBrowserPlatformDelegateOsr::CreateViewForWebContents(
-    content::WebContentsView** view,
-    content::RenderViewHostDelegateView** delegate_view) {
+void CefBrowserPlatformDelegateOsr::CreateViewForWebContents() {
   DCHECK(!view_osr_);
 
   // Use the OSR view instead of the default platform view.
   view_osr_ = new CefWebContentsViewOSR(
       !!native_delegate_->window_info().transparent_painting_enabled);
-  *view = view_osr_;
-  *delegate_view = view_osr_;
 }
 
 void CefBrowserPlatformDelegateOsr::WebContentsCreated(
@@ -249,134 +245,17 @@ void CefBrowserPlatformDelegateOsr::DragTargetDragEnter(
     CefRefPtr<CefDragData> drag_data,
     const CefMouseEvent& event,
     cef_drag_operations_mask_t allowed_ops) {
-  content::WebContentsImpl* web_contents =
-      static_cast<content::WebContentsImpl*>(browser_->web_contents());
-  if (!web_contents)
-    return;
-
-  if (current_rvh_for_drag_)
-    DragTargetDragLeave();
-
-  const gfx::Point client_pt(event.x, event.y);
-  gfx::Point transformed_pt;
-  current_rwh_for_drag_ =
-      web_contents->GetInputEventRouter()->GetRenderWidgetHostAtPoint(
-          web_contents->GetRenderViewHost()->GetWidget()->GetView(),
-          client_pt, &transformed_pt)->GetWeakPtr();
-  current_rvh_for_drag_ = web_contents->GetRenderViewHost();
-
-  drag_data_ = drag_data;
-  drag_allowed_ops_ = allowed_ops;
-
-  CefDragDataImpl* data_impl = static_cast<CefDragDataImpl*>(drag_data.get());
-  base::AutoLock lock_scope(data_impl->lock());
-  content::DropData* drop_data = data_impl->drop_data();
-  const gfx::Point& screen_pt = GetScreenPoint(client_pt);
-  blink::WebDragOperationsMask ops =
-      static_cast<blink::WebDragOperationsMask>(allowed_ops);
-  int modifiers = TranslateModifiers(event.modifiers);
-
-  current_rwh_for_drag_->FilterDropData(drop_data);
-
-  // Give the delegate an opportunity to cancel the drag.
-  if (web_contents->GetDelegate() &&
-      !web_contents->GetDelegate()->CanDragEnter(
-          web_contents, *drop_data, ops)) {
-    drag_data_ = nullptr;
-    return;
-  }
-
-  current_rwh_for_drag_->DragTargetDragEnter(
-      *drop_data, transformed_pt, screen_pt, ops, modifiers);
 }
 
 void CefBrowserPlatformDelegateOsr::DragTargetDragOver(
     const CefMouseEvent& event,
     cef_drag_operations_mask_t allowed_ops) {
-  if (!drag_data_)
-    return;
-
-  content::WebContentsImpl* web_contents =
-      static_cast<content::WebContentsImpl*>(browser_->web_contents());
-  if (!web_contents)
-    return;
-
-  const gfx::Point client_pt(event.x, event.y);
-  gfx::Point transformed_pt;
-  content::RenderWidgetHostImpl* target_rwh =
-      web_contents->GetInputEventRouter()->GetRenderWidgetHostAtPoint(
-          web_contents->GetRenderViewHost()->GetWidget()->GetView(),
-          client_pt, &transformed_pt);
-
-  if (target_rwh != current_rwh_for_drag_.get()) {
-    if (current_rwh_for_drag_)
-      current_rwh_for_drag_->DragTargetDragLeave();
-    DragTargetDragEnter(drag_data_, event, drag_allowed_ops_);
-  }
-
-  if (!drag_data_)
-    return;
-
-  const gfx::Point& screen_pt = GetScreenPoint(client_pt);
-  blink::WebDragOperationsMask ops =
-      static_cast<blink::WebDragOperationsMask>(allowed_ops);
-  int modifiers = TranslateModifiers(event.modifiers);
-
-  target_rwh->DragTargetDragOver(transformed_pt, screen_pt, ops, modifiers);
 }
 
 void CefBrowserPlatformDelegateOsr::DragTargetDragLeave() {
-  if (current_rvh_for_drag_ != browser_->web_contents()->GetRenderViewHost() ||
-      !drag_data_) {
-    return;
-  }
-
-  if (current_rwh_for_drag_) {
-    current_rwh_for_drag_->DragTargetDragLeave();
-    current_rwh_for_drag_.reset();
-  }
-
-  drag_data_ = nullptr;
 }
 
 void CefBrowserPlatformDelegateOsr::DragTargetDrop(const CefMouseEvent& event) {
-  if (!drag_data_)
-    return;
-
-  content::WebContentsImpl* web_contents =
-      static_cast<content::WebContentsImpl*>(browser_->web_contents());
-  if (!web_contents)
-    return;
-
-  gfx::Point client_pt(event.x, event.y);
-  gfx::Point transformed_pt;
-  content::RenderWidgetHostImpl* target_rwh =
-      web_contents->GetInputEventRouter()->GetRenderWidgetHostAtPoint(
-          web_contents->GetRenderViewHost()->GetWidget()->GetView(),
-          client_pt, &transformed_pt);
-
-  if (target_rwh != current_rwh_for_drag_.get()) {
-    if (current_rwh_for_drag_)
-      current_rwh_for_drag_->DragTargetDragLeave();
-    DragTargetDragEnter(drag_data_, event, drag_allowed_ops_);
-  }
-
-  if (!drag_data_)
-    return;
-
-  {
-    CefDragDataImpl* data_impl =
-        static_cast<CefDragDataImpl*>(drag_data_.get());
-    base::AutoLock lock_scope(data_impl->lock());
-    content::DropData* drop_data = data_impl->drop_data();
-    const gfx::Point& screen_pt = GetScreenPoint(client_pt);
-    int modifiers = TranslateModifiers(event.modifiers);
-
-    target_rwh->DragTargetDrop(*drop_data, transformed_pt, screen_pt,
-                               modifiers);
-  }
-
-  drag_data_ = nullptr;
 }
 
 void CefBrowserPlatformDelegateOsr::StartDragging(
@@ -384,70 +263,19 @@ void CefBrowserPlatformDelegateOsr::StartDragging(
     blink::WebDragOperationsMask allowed_ops,
     const gfx::ImageSkia& image,
     const gfx::Vector2d& image_offset,
-    const content::DragEventSourceInfo& event_info,
-    content::RenderWidgetHostImpl* source_rwh) {
-  drag_start_rwh_ = source_rwh->GetWeakPtr();
-
-  bool handled = false;
-
-  CefRefPtr<CefRenderHandler> handler =
-      browser_->GetClient()->GetRenderHandler();
-  if (handler.get()) {
-    CefRefPtr<CefDragDataImpl> drag_data(new CefDragDataImpl(drop_data));
-    drag_data->SetReadOnly(true);
-    base::MessageLoop::ScopedNestableTaskAllower allow(
-        base::MessageLoop::current());
-    handled = handler->StartDragging(
-        browser_,
-        drag_data.get(),
-        static_cast<CefRenderHandler::DragOperationsMask>(allowed_ops),
-        event_info.event_location.x(),
-        event_info.event_location.y());
-  }
-
-  if (!handled)
-    DragSourceSystemDragEnded();
+    const content::DragEventSourceInfo& event_info) {
 }
 
 void CefBrowserPlatformDelegateOsr::UpdateDragCursor(
     blink::WebDragOperation operation) {
-  CefRefPtr<CefRenderHandler> handler =
-      browser_->GetClient()->GetRenderHandler();
-  if (handler.get()) {
-    handler->UpdateDragCursor(
-        browser_, static_cast<CefRenderHandler::DragOperation>(operation));
-  }
 }
 
 void CefBrowserPlatformDelegateOsr::DragSourceEndedAt(
     int x, int y,
     cef_drag_operations_mask_t op) {
-  if (!drag_start_rwh_)
-    return;
-
-  content::WebContentsImpl* web_contents =
-      static_cast<content::WebContentsImpl*>(browser_->web_contents());
-  if (!web_contents)
-    return;
-
-  const gfx::Point& screen_pt = GetScreenPoint(gfx::Point(x, y));
-  blink::WebDragOperation drag_op = static_cast<blink::WebDragOperation>(op);
-
-  web_contents->DragSourceEndedAt(x, y, screen_pt.x(), screen_pt.y(), drag_op,
-                                  drag_start_rwh_.get());
 }
 
 void CefBrowserPlatformDelegateOsr::DragSourceSystemDragEnded() {
-  if (!drag_start_rwh_)
-    return;
-
-  content::WebContents* web_contents = browser_->web_contents();
-  if (!web_contents)
-    return;
-
-  web_contents->SystemDragEnded(drag_start_rwh_.get());
-
-  drag_start_rwh_ = nullptr;
 }
 
 CefWindowHandle CefBrowserPlatformDelegateOsr::GetParentWindowHandle() const {

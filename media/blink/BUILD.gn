@@ -88,13 +88,13 @@ component("blink") {
       "webmediaplayer_impl.cc",
       "webmediaplayer_impl.h",
     ]
-    if (is_android) {
-      sources += [
-        "webmediaplayer_cast_android.cc",
-        "webmediaplayer_cast_android.h",
-      ]
-      deps += [ "//gpu/command_buffer/client:gles2_interface" ]
-    }
+    # if (is_android) {
+    #   sources += [
+    #     "webmediaplayer_cast_android.cc",
+    #     "webmediaplayer_cast_android.h",
+    #   ]
+    #   deps += [ "//gpu/command_buffer/client:gles2_interface" ]
+    # }
   }
 }
 

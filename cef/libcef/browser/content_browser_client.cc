@@ -15,14 +15,11 @@
 #include "libcef/browser/browser_platform_delegate.h"
 #include "libcef/browser/context.h"
 #include "libcef/browser/devtools_manager_delegate.h"
-#include "libcef/browser/extensions/extension_system.h"
 #include "libcef/browser/media_capture_devices_dispatcher.h"
 #include "libcef/browser/net/chrome_scheme_handler.h"
 #include "libcef/browser/pepper/browser_pepper_host_factory.h"
-#include "libcef/browser/plugins/plugin_info_message_filter.h"
 #include "libcef/browser/plugins/plugin_service_filter.h"
 #include "libcef/browser/prefs/renderer_prefs.h"
-#include "libcef/browser/printing/printing_message_filter.h"
 #include "libcef/browser/resource_dispatcher_host_delegate.h"
 #include "libcef/browser/speech_recognition_manager_delegate.h"
 #include "libcef/browser/ssl_info_impl.h"
@@ -32,7 +29,6 @@
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/command_line_impl.h"
 #include "libcef/common/content_client.h"
-#include "libcef/common/extensions/extensions_util.h"
 #include "libcef/common/net/scheme_registration.h"
 #include "libcef/common/request_impl.h"
 
@@ -42,8 +38,7 @@
 #include "base/json/json_reader.h"
 #include "base/path_service.h"
 #include "cef/grit/cef_resources.h"
-#include "chrome/browser/spellchecker/spellcheck_message_filter.h"
-#include "chrome/common/chrome_switches.h"
+// #include "chrome/common/chrome_switches.h"
 #include "components/navigation_interception/intercept_navigation_throttle.h"
 #include "components/navigation_interception/navigation_params.h"
 #include "content/browser/frame_host/navigation_handle_impl.h"
@@ -62,38 +57,15 @@
 #include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/resource_dispatcher_host.h"
 #include "content/public/common/content_switches.h"
-#include "content/public/common/service_names.mojom.h"
+#include "content/public/common/service_names.h"
 #include "content/public/common/storage_quota_params.h"
 #include "content/public/common/web_preferences.h"
-#include "extensions/browser/extensions_browser_client.h"
-#include "extensions/browser/extension_message_filter.h"
-#include "extensions/browser/extension_registry.h"
-#include "extensions/browser/guest_view/extensions_guest_view_message_filter.h"
-#include "extensions/browser/io_thread_extension_message_filter.h"
-#include "extensions/common/constants.h"
-#include "extensions/common/switches.h"
 #include "net/ssl/ssl_cert_request_info.h"
 #include "ppapi/host/ppapi_host.h"
 #include "third_party/WebKit/public/web/WebWindowFeatures.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/ui_base_switches.h"
 #include "url/gurl.h"
-
-#if defined(OS_LINUX)
-#include "libcef/common/widevine_loader.h"
-#endif
-
-#if defined(OS_MACOSX)
-#include "components/spellcheck/browser/spellcheck_message_filter_platform.h"
-#endif
-
-#if defined(OS_POSIX) && !defined(OS_MACOSX)
-#include "base/debug/leak_annotations.h"
-#include "chrome/common/chrome_paths.h"
-#include "components/crash/content/app/breakpad_linux.h"
-#include "components/crash/content/browser/crash_handler_host_linux.h"
-#include "content/public/common/content_descriptors.h"
-#endif
 
 #if defined(OS_WIN)
 #include "sandbox/win/src/sandbox_policy.h"
@@ -315,63 +287,6 @@ class CefQuotaPermissionContext : public content::QuotaPermissionContext {
   DISALLOW_COPY_AND_ASSIGN(CefQuotaPermissionContext);
 };
 
-#if defined(OS_POSIX) && !defined(OS_MACOSX)
-breakpad::CrashHandlerHostLinux* CreateCrashHandlerHost(
-    const std::string& process_type) {
-  base::FilePath dumps_path;
-  PathService::Get(chrome::DIR_CRASH_DUMPS, &dumps_path);
-  {
-    ANNOTATE_SCOPED_MEMORY_LEAK;
-    // Uploads will only occur if a non-empty crash URL is specified in
-    // CefMainDelegate::InitCrashReporter.
-    breakpad::CrashHandlerHostLinux* crash_handler =
-        new breakpad::CrashHandlerHostLinux(
-            process_type, dumps_path, true /* upload */);
-    crash_handler->StartUploaderThread();
-    return crash_handler;
-  }
-}
-
-int GetCrashSignalFD(const base::CommandLine& command_line) {
-  if (!breakpad::IsCrashReporterEnabled())
-    return -1;
-
-  // Extensions have the same process type as renderers.
-  if (command_line.HasSwitch(extensions::switches::kExtensionProcess)) {
-    static breakpad::CrashHandlerHostLinux* crash_handler = NULL;
-    if (!crash_handler)
-      crash_handler = CreateCrashHandlerHost("extension");
-    return crash_handler->GetDeathSignalSocket();
-  }
-
-  std::string process_type =
-      command_line.GetSwitchValueASCII(switches::kProcessType);
-
-  if (process_type == switches::kRendererProcess) {
-    static breakpad::CrashHandlerHostLinux* crash_handler = NULL;
-    if (!crash_handler)
-      crash_handler = CreateCrashHandlerHost(process_type);
-    return crash_handler->GetDeathSignalSocket();
-  }
-
-  if (process_type == switches::kPpapiPluginProcess) {
-    static breakpad::CrashHandlerHostLinux* crash_handler = NULL;
-    if (!crash_handler)
-      crash_handler = CreateCrashHandlerHost(process_type);
-    return crash_handler->GetDeathSignalSocket();
-  }
-
-  if (process_type == switches::kGpuProcess) {
-    static breakpad::CrashHandlerHostLinux* crash_handler = NULL;
-    if (!crash_handler)
-      crash_handler = CreateCrashHandlerHost(process_type);
-    return crash_handler->GetDeathSignalSocket();
-  }
-
-  return -1;
-}
-#endif  // defined(OS_POSIX) && !defined(OS_MACOSX)
-
 // TODO(cef): We can't currently trust NavigationParams::is_main_frame() because
 // it's always set to true in
 // InterceptNavigationThrottle::CheckIfShouldIgnoreNavigation. Remove the
@@ -460,32 +375,11 @@ content::BrowserMainParts* CefContentBrowserClient::CreateBrowserMainParts(
 
 void CefContentBrowserClient::RenderProcessWillLaunch(
     content::RenderProcessHost* host) {
-  const base::CommandLine* command_line =
-      base::CommandLine::ForCurrentProcess();
+  // const base::CommandLine* command_line =
+  //     base::CommandLine::ForCurrentProcess();
   const int id = host->GetID();
-  Profile* profile = Profile::FromBrowserContext(host->GetBrowserContext());
 
   host->GetChannel()->AddFilter(new CefBrowserMessageFilter(id));
-  host->AddFilter(new printing::CefPrintingMessageFilter(id, profile));
-
-  if (!command_line->HasSwitch(switches::kDisableSpellChecking)) {
-    host->AddFilter(new SpellCheckMessageFilter(id));
-#if defined(OS_MACOSX)
-    host->AddFilter(new SpellCheckMessageFilterPlatform(id));
-#endif
-  }
-
-  host->AddFilter(new CefPluginInfoMessageFilter(id,
-      static_cast<CefBrowserContext*>(profile)));
-
-  if (extensions::ExtensionsEnabled()) {
-    host->AddFilter(
-        new extensions::ExtensionMessageFilter(id, profile));
-    host->AddFilter(
-        new extensions::IOThreadExtensionMessageFilter(id, profile));
-    host->AddFilter(
-        new extensions::ExtensionsGuestViewMessageFilter(id, profile));
-  }
 
   // If the renderer process crashes then the host may already have
   // CefBrowserInfoManager as an observer. Try to remove it first before adding
@@ -494,34 +388,13 @@ void CefContentBrowserClient::RenderProcessWillLaunch(
   host->AddObserver(CefBrowserInfoManager::GetInstance());
 
   host->Send(new CefProcessMsg_SetIsIncognitoProcess(
-      profile->IsOffTheRecord()));
+      host->GetBrowserContext()->IsOffTheRecord()));
 }
 
 bool CefContentBrowserClient::ShouldUseProcessPerSite(
     content::BrowserContext* browser_context,
     const GURL& effective_url) {
-  if (!extensions::ExtensionsEnabled())
-    return false;
-
-  if (!effective_url.SchemeIs(extensions::kExtensionScheme))
-    return false;
-
-  extensions::ExtensionRegistry* registry =
-      extensions::ExtensionRegistry::Get(browser_context);
-  if (!registry)
-    return false;
-
-  const extensions::Extension* extension =
-      registry->enabled_extensions().GetByID(effective_url.host());
-  if (!extension)
-    return false;
-
-  // TODO(extensions): Extra checks required if type is TYPE_HOSTED_APP.
-
-  // Hosted apps that have script access to their background page must use
-  // process per site, since all instances can make synchronous calls to the
-  // background window.  Other extensions should use process per site as well.
-  return true;
+  return false;
 }
 
 bool CefContentBrowserClient::IsHandledURL(const GURL& url) {
@@ -538,70 +411,22 @@ bool CefContentBrowserClient::IsHandledURL(const GURL& url) {
 
 void CefContentBrowserClient::SiteInstanceGotProcess(
     content::SiteInstance* site_instance) {
-  if (!extensions::ExtensionsEnabled())
-    return;
-
-  // If this isn't an extension renderer there's nothing to do.
-  const extensions::Extension* extension = GetExtension(site_instance);
-  if (!extension)
-    return;
-
-  CefBrowserContext* browser_context =
-      static_cast<CefBrowserContext*>(site_instance->GetBrowserContext());
-
-  extensions::ProcessMap::Get(browser_context)
-      ->Insert(extension->id(),
-               site_instance->GetProcess()->GetID(),
-               site_instance->GetId());
-
-  CEF_POST_TASK(CEF_IOT,
-      base::Bind(&extensions::InfoMap::RegisterExtensionProcess,
-                 browser_context->extension_system()->info_map(),
-                 extension->id(),
-                 site_instance->GetProcess()->GetID(),
-                 site_instance->GetId()));
 }
 
 void CefContentBrowserClient::SiteInstanceDeleting(
     content::SiteInstance* site_instance) {
-  if (!extensions::ExtensionsEnabled())
-    return;
-
-  // May be NULL during shutdown.
-  if (!extensions::ExtensionsBrowserClient::Get())
-    return;
-
-  // If this isn't an extension renderer there's nothing to do.
-  const extensions::Extension* extension = GetExtension(site_instance);
-  if (!extension)
-    return;
-
-  CefBrowserContext* browser_context =
-      static_cast<CefBrowserContext*>(site_instance->GetBrowserContext());
-
-  extensions::ProcessMap::Get(browser_context)
-      ->Remove(extension->id(),
-               site_instance->GetProcess()->GetID(),
-               site_instance->GetId());
-
-  CEF_POST_TASK(CEF_IOT,
-      base::Bind(&extensions::InfoMap::UnregisterExtensionProcess,
-                 browser_context->extension_system()->info_map(),
-                 extension->id(),
-                 site_instance->GetProcess()->GetID(),
-                 site_instance->GetId()));
 }
 
 std::unique_ptr<base::Value>
 CefContentBrowserClient::GetServiceManifestOverlay(
     const std::string& name) {
   int id = -1;
-  if (name == content::mojom::kBrowserServiceName)
-    id = IDR_CEF_BROWSER_MANIFEST_OVERLAY;
-  else if (name == content::mojom::kRendererServiceName)
-    id = IDR_CEF_RENDERER_MANIFEST_OVERLAY;
-  else if (name == content::mojom::kUtilityServiceName)
-    id = IDR_CEF_UTILITY_MANIFEST_OVERLAY;
+  // if (name == content::kBrowserServiceName)
+  //   id = IDR_CEF_BROWSER_MANIFEST_OVERLAY;
+  // else if (name == content::kRendererServiceName)
+  //   id = IDR_CEF_RENDERER_MANIFEST_OVERLAY;
+  // else if (name == content::kUtilityServiceName)
+  //   id = IDR_CEF_UTILITY_MANIFEST_OVERLAY;
   if (id == -1)
     return nullptr;
 
@@ -640,33 +465,14 @@ void CefContentBrowserClient::AppendExtraCommandLineSwitches(
     // any associated values) if present in the browser command line.
     static const char* const kSwitchNames[] = {
       switches::kContextSafetyImplementation,
-      switches::kDisableExtensions,
-      switches::kDisablePdfExtension,
       switches::kDisableScrollBounce,
-      switches::kDisableSpellChecking,
       switches::kEnableSpeechInput,
       switches::kEnableSystemFlash,
       switches::kPpapiFlashArgs,
-      switches::kPpapiFlashPath,
-      switches::kPpapiFlashVersion,
       switches::kUncaughtExceptionStackSize,
     };
     command_line->CopySwitchesFrom(*browser_cmd, kSwitchNames,
                                    arraysize(kSwitchNames));
-
-    if (extensions::ExtensionsEnabled()) {
-      // Based on ChromeContentBrowserClientExtensionsPart::
-      // AppendExtraRendererCommandLineSwitches
-      content::RenderProcessHost* process =
-          content::RenderProcessHost::FromID(child_process_id);
-      content::BrowserContext* browser_context =
-          process ? process->GetBrowserContext() : NULL;
-      if (browser_context &&
-          extensions::ProcessMap::Get(browser_context)->Contains(
-              process->GetID())) {
-        command_line->AppendSwitch(extensions::switches::kExtensionProcess);
-      }
-    }
   }
 
 #if defined(OS_LINUX)
@@ -674,21 +480,9 @@ void CefContentBrowserClient::AppendExtraCommandLineSwitches(
     // Propagate the following switches to the zygote command line (along with
     // any associated values) if present in the browser command line.
     static const char* const kSwitchNames[] = {
-      switches::kPpapiFlashPath,
-      switches::kPpapiFlashVersion,
     };
     command_line->CopySwitchesFrom(*browser_cmd, kSwitchNames,
                                    arraysize(kSwitchNames));
-
-#if defined(WIDEVINE_CDM_AVAILABLE) && BUILDFLAG(ENABLE_PEPPER_CDMS)
-    if (!browser_cmd->HasSwitch(switches::kNoSandbox)) {
-      // Pass the Widevine CDM path to the Zygote process. See comments in
-      // CefWidevineLoader::AddPepperPlugins.
-      const base::FilePath& cdm_path = CefWidevineLoader::GetInstance()->path();
-      if (!cdm_path.empty())
-        command_line->AppendSwitchPath(switches::kWidevineCdmPath, cdm_path);
-    }
-#endif
 
     if (browser_cmd->HasSwitch(switches::kBrowserSubprocessPath)) {
       // Force use of the sub-process executable path for the zygote process.
@@ -860,8 +654,8 @@ void CefContentBrowserClient::OverrideWebkitPrefs(
 
   if (rvh->GetWidget()->GetView() &&
       rvh->GetWidget()->GetView()->GetNativeView()) {
-    rvh->GetWidget()->GetView()->SetBackgroundColor(
-        prefs->base_background_color);
+    // rvh->GetWidget()->GetView()->SetBackgroundColor(
+    //     prefs->base_background_color);
   }
 }
 
@@ -932,19 +726,6 @@ CefContentBrowserClient::CreateThrottlesForNavigation(
   return throttles;
 }
 
-#if defined(OS_POSIX) && !defined(OS_MACOSX)
-void CefContentBrowserClient::GetAdditionalMappedFilesForChildProcess(
-    const base::CommandLine& command_line,
-    int child_process_id,
-    content::FileDescriptorInfo* mappings) {
-  int crash_signal_fd = GetCrashSignalFD(command_line);
-  if (crash_signal_fd >= 0) {
-    mappings->Share(kCrashDumpSignal, crash_signal_fd);
-  }
-}
-#endif  // defined(OS_POSIX) && !defined(OS_MACOSX)
-
-
 #if defined(OS_WIN)
 const wchar_t* CefContentBrowserClient::GetResourceDllName() {
   static wchar_t file_path[MAX_PATH+1] = {0};
@@ -985,12 +766,4 @@ CefContentBrowserClient::browser_context() const {
 
 CefDevToolsDelegate* CefContentBrowserClient::devtools_delegate() const {
   return browser_main_parts_->devtools_delegate();
-}
-
-const extensions::Extension* CefContentBrowserClient::GetExtension(
-    content::SiteInstance* site_instance) {
-  extensions::ExtensionRegistry* registry =
-      extensions::ExtensionRegistry::Get(site_instance->GetBrowserContext());
-  return registry->enabled_extensions().GetExtensionOrAppByURL(
-      site_instance->GetSiteURL());
 }

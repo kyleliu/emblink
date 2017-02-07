@@ -5,11 +5,10 @@
 #include "libcef/renderer/plugins/plugin_preroller.h"
 
 #include "libcef/renderer/plugins/cef_plugin_placeholder.h"
+#include "libcef/renderer/plugins/power_saver_info.h"
 
 #include "base/base64.h"
-#include "chrome/grit/generated_resources.h"
-#include "chrome/grit/renderer_resources.h"
-#include "chrome/renderer/plugins/power_saver_info.h"
+#include "cef/grit/cef_resources.h"
 #include "third_party/WebKit/public/platform/WebRect.h"
 #include "third_party/WebKit/public/web/WebElement.h"
 #include "third_party/WebKit/public/web/WebPlugin.h"

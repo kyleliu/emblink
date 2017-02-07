@@ -52,10 +52,6 @@
 #endif
 #endif
 
-#if defined(OS_ANDROID)
-#include "base/test/test_support_android.h"
-#endif
-
 #if defined(OS_IOS)
 #include "base/test/test_support_ios.h"
 #endif
@@ -317,9 +313,6 @@ void TestSuite::Initialize() {
   InitIOSTestMessageLoop();
 #endif  // OS_IOS
 
-#if defined(OS_ANDROID)
-  InitAndroidTest();
-#else
   // Initialize logging.
   FilePath exe;
   PathService::Get(FILE_EXE, &exe);
@@ -332,7 +325,6 @@ void TestSuite::Initialize() {
   // We want process and thread IDs because we may have multiple processes.
   // Note: temporarily enabled timestamps in an effort to catch bug 6361.
   logging::SetLogItems(true, true, true, true);
-#endif  // else defined(OS_ANDROID)
 
   CHECK(debug::EnableInProcessStackDumping());
 #if defined(OS_WIN)

@@ -35,6 +35,8 @@
 namespace content {
 struct DragEventSourceInfo;
 class RenderWidgetHostImpl;
+class WebContentsView;
+class RenderViewHostDelegateView;
 }
 
 namespace net {
@@ -333,8 +335,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
       blink::WebDragOperationsMask allowed_ops,
       const gfx::ImageSkia& image,
       const gfx::Vector2d& image_offset,
-      const content::DragEventSourceInfo& event_info,
-      content::RenderWidgetHostImpl* source_rwh);
+      const content::DragEventSourceInfo& event_info);
   void UpdateDragCursor(blink::WebDragOperation operation);
 
   // Thread safe accessors.
@@ -379,11 +380,11 @@ class CefBrowserHostImpl : public CefBrowserHost,
   void CloseContents(content::WebContents* source) override;
   void UpdateTargetURL(content::WebContents* source,
                        const GURL& url) override;
-  bool DidAddMessageToConsole(content::WebContents* source,
-                              int32_t level,
-                              const base::string16& message,
-                              int32_t line_no,
-                              const base::string16& source_id) override;
+  bool AddMessageToConsole(content::WebContents* source,
+                           int32_t level,
+                           const base::string16& message,
+                           int32_t line_no,
+                           const base::string16& source_id) override;
   void BeforeUnloadFired(content::WebContents* source,
                          bool proceed,
                          bool* proceed_to_fire_unload) override;
@@ -404,16 +405,14 @@ class CefBrowserHostImpl : public CefBrowserHost,
       blink::WebDragOperationsMask operations_allowed) override;
   bool ShouldCreateWebContents(
       content::WebContents* web_contents,
-      int route_id,
-      int main_frame_route_id,
+      int32_t route_id,
+      int32_t main_frame_route_id,
       int32_t main_frame_widget_route_id,
       WindowContainerType window_container_type,
       const std::string& frame_name,
       const GURL& target_url,
       const std::string& partition_id,
-      content::SessionStorageNamespace* session_storage_namespace,
-      content::WebContentsView** view,
-      content::RenderViewHostDelegateView** delegate_view) override;
+      content::SessionStorageNamespace* session_storage_namespace) override;
   void WebContentsCreated(content::WebContents* source_contents,
                           int opener_render_process_id,
                           int opener_render_frame_id,

@@ -19,13 +19,9 @@
 #include "libcef/common/cef_messages.h"
 #include "libcef/common/cef_switches.h"
 #include "libcef/common/content_client.h"
-#include "libcef/common/extensions/extensions_client.h"
-#include "libcef/common/extensions/extensions_util.h"
 #include "libcef/common/request_impl.h"
 #include "libcef/common/values_impl.h"
 #include "libcef/renderer/browser_impl.h"
-#include "libcef/renderer/extensions/extensions_renderer_client.h"
-#include "libcef/renderer/extensions/print_web_view_helper_delegate.h"
 #include "libcef/renderer/media/cef_key_systems.h"
 #include "libcef/renderer/pepper/pepper_helper.h"
 #include "libcef/renderer/plugins/cef_plugin_placeholder.h"
@@ -46,20 +42,20 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
-#include "chrome/common/chrome_switches.h"
-#include "chrome/common/pepper_permission_util.h"
-#include "chrome/common/url_constants.h"
-#include "chrome/grit/generated_resources.h"
-#include "chrome/grit/renderer_resources.h"
-#include "chrome/renderer/content_settings_observer.h"
-#include "chrome/renderer/loadtimes_extension_bindings.h"
-#include "chrome/renderer/pepper/chrome_pdf_print_client.h"
-#include "chrome/renderer/plugins/power_saver_info.h"
+#include "cef/grit/cef_resources.h"
+#include "cef/grit/cef_strings.h"
+// #include "chrome/common/chrome_switches.h"
+// #include "chrome/common/pepper_permission_util.h"
+// #include "chrome/common/url_constants.h"
+// #include "chrome/grit/generated_resources.h"
+// #include "chrome/grit/renderer_resources.h"
+// #include "chrome/renderer/content_settings_observer.h"
+// #include "chrome/renderer/loadtimes_extension_bindings.h"
+// #include "chrome/renderer/pepper/chrome_pdf_print_client.h"
+// #include "chrome/renderer/plugins/power_saver_info.h"
 #include "components/content_settings/core/common/content_settings_types.h"
-#include "components/nacl/common/nacl_constants.h"
-#include "components/printing/renderer/print_web_view_helper.h"
-#include "components/spellcheck/renderer/spellcheck.h"
-#include "components/spellcheck/renderer/spellcheck_provider.h"
+// #include "components/nacl/common/nacl_constants.h"
+// #include "components/printing/renderer/print_web_view_helper.h"
 #include "components/visitedlink/renderer/visitedlink_slave.h"
 #include "components/web_cache/renderer/web_cache_impl.h"
 #include "content/common/frame_messages.h"
@@ -75,10 +71,8 @@
 #include "content/public/renderer/render_view_visitor.h"
 #include "content/renderer/render_frame_impl.h"
 #include "content/renderer/render_widget.h"
-#include "extensions/renderer/renderer_extension_registry.h"
 #include "ipc/ipc_sync_channel.h"
 #include "media/base/media.h"
-#include "printing/print_settings.h"
 #include "third_party/WebKit/public/platform/URLConversion.h"
 #include "third_party/WebKit/public/platform/WebPrerenderingSupport.h"
 #include "third_party/WebKit/public/platform/WebString.h"
@@ -106,7 +100,6 @@ class CefPrerenderingSupport : public blink::WebPrerenderingSupport {
   void add(const blink::WebPrerender& prerender) override {}
   void cancel(const blink::WebPrerender& prerender) override {}
   void abandon(const blink::WebPrerender& prerender) override {}
-  void prefetchFinished() override {}
 };
 
 // Stub implementation of blink::WebPrerendererClient.
@@ -179,16 +172,6 @@ CefContentRendererClient::CefContentRendererClient()
     : devtools_agent_count_(0),
       uncaught_exception_stack_size_(0),
       single_process_cleanup_complete_(false) {
-  if (extensions::ExtensionsEnabled()) {
-    extensions_client_.reset(new extensions::CefExtensionsClient);
-    extensions::ExtensionsClient::Set(extensions_client_.get());
-    extensions_renderer_client_.reset(
-        new extensions::CefExtensionsRendererClient);
-    extensions::ExtensionsRendererClient::Set(
-        extensions_renderer_client_.get());
-  }
-
-  printing::SetAgent(CefContentClient::Get()->GetUserAgent());
 }
 
 CefContentRendererClient::~CefContentRendererClient() {
@@ -388,8 +371,8 @@ void CefContentRendererClient::RunSingleProcessCleanup() {
 }
 
 void CefContentRendererClient::RenderThreadStarted() {
-  const base::CommandLine* command_line =
-      base::CommandLine::ForCurrentProcess();
+  // const base::CommandLine* command_line =
+  //     base::CommandLine::ForCurrentProcess();
 
   render_task_runner_ = base::ThreadTaskRunnerHandle::Get();
   observer_.reset(new CefRenderThreadObserver());
@@ -398,11 +381,6 @@ void CefContentRendererClient::RenderThreadStarted() {
   content::RenderThread* thread = content::RenderThread::Get();
   thread->AddObserver(observer_.get());
   thread->GetChannel()->AddFilter(new CefRenderMessageFilter);
-
-  if (!command_line->HasSwitch(switches::kDisableSpellChecking)) {
-    spellcheck_.reset(new SpellCheck());
-    thread->AddObserver(spellcheck_.get());
-  }
 
   if (content::RenderProcessHost::run_renderer_in_process()) {
     // When running in single-process mode register as a destruction observer
@@ -436,14 +414,6 @@ void CefContentRendererClient::RenderThreadStarted() {
   }
 #endif  // defined(OS_MACOSX)
 
-  if (extensions::PdfExtensionEnabled()) {
-    pdf_print_client_.reset(new ChromePDFPrintClient());
-    pdf::PepperPDFHost::SetPrintClient(pdf_print_client_.get());
-  }
-
-  if (extensions::ExtensionsEnabled())
-    extensions_renderer_client_->RenderThreadStarted();
-
   // Notify the render process handler.
   CefRefPtr<CefApp> application = CefContentClient::Get()->application();
   if (application.get()) {
@@ -457,9 +427,6 @@ void CefContentRendererClient::RenderThreadStarted() {
     }
   }
 
-  // Register extensions last because it will trigger WebKit initialization.
-  thread->RegisterExtension(extensions_v8::LoadTimesExtension::Get());
-
   WebKitInitialized();
 }
 
@@ -467,12 +434,6 @@ void CefContentRendererClient::RenderFrameCreated(
     content::RenderFrame* render_frame) {
   new CefRenderFrameObserver(render_frame);
   new CefPepperHelper(render_frame);
-  new printing::PrintWebViewHelper(
-      render_frame,
-      base::WrapUnique(new extensions::CefPrintWebViewHelperDelegate()));
-
-  if (extensions::ExtensionsEnabled())
-    extensions_renderer_client_->RenderFrameCreated(render_frame);
 
   BrowserCreated(render_frame->GetRenderView(), render_frame);
 }
@@ -481,14 +442,8 @@ void CefContentRendererClient::RenderViewCreated(
     content::RenderView* render_view) {
   new CefPrerendererClient(render_view);
 
-  if (extensions::ExtensionsEnabled())
-    extensions_renderer_client_->RenderViewCreated(render_view);
-
-  const base::CommandLine* command_line =
-      base::CommandLine::ForCurrentProcess();
-  if (!command_line->HasSwitch(switches::kDisableSpellChecking))
-    new SpellCheckProvider(render_view, spellcheck_.get());
-
+  // const base::CommandLine* command_line =
+  //     base::CommandLine::ForCurrentProcess();
   BrowserCreated(render_view, render_view->GetMainRenderFrame());
 }
 
@@ -498,11 +453,6 @@ bool CefContentRendererClient::OverrideCreatePlugin(
     const blink::WebPluginParams& params,
     blink::WebPlugin** plugin) {
   std::string orig_mime_type = params.mimeType.utf8();
-  if (extensions::ExtensionsEnabled() &&
-      !extensions_renderer_client_->OverrideCreatePlugin(render_frame,
-                                                         params)) {
-    return false;
-  }
 
   GURL url(params.url);
   CefViewHostMsg_GetPluginInfo_Output output;
@@ -587,24 +537,15 @@ bool CefContentRendererClient::ShouldFork(blink::WebLocalFrame* frame,
   if (http_method != "GET")
     return false;
 
-  if (extensions::ExtensionsEnabled()) {
-    return extensions::CefExtensionsRendererClient::ShouldFork(
-        frame, url, is_initial_navigation, is_server_redirect, send_referrer);
-  }
-
   return false;
 }
 
 bool CefContentRendererClient::WillSendRequest(
     blink::WebFrame* frame,
     ui::PageTransition transition_type,
-    const blink::WebURL& url,
+    const GURL& url,
+    const GURL& first_party_for_cookies,
     GURL* new_url) {
-  if (extensions::ExtensionsEnabled()) {
-    return extensions_renderer_client_->WillSendRequest(frame, transition_type,
-                                                        url, new_url);
-  }
-
   return false;
 }
 
@@ -623,9 +564,7 @@ CefContentRendererClient::CreateBrowserPluginDelegate(
     content::RenderFrame* render_frame,
     const std::string& mime_type,
     const GURL& original_url) {
-  DCHECK(extensions::ExtensionsEnabled());
-  return extensions::CefExtensionsRendererClient::CreateBrowserPluginDelegate(
-       render_frame, mime_type, original_url);
+  return NULL;
 }
 
 void CefContentRendererClient::AddSupportedKeySystems(
@@ -635,14 +574,10 @@ void CefContentRendererClient::AddSupportedKeySystems(
 
 void CefContentRendererClient::RunScriptsAtDocumentStart(
     content::RenderFrame* render_frame) {
-  if (extensions::ExtensionsEnabled())
-    extensions_renderer_client_->RunScriptsAtDocumentStart(render_frame);
 }
 
 void CefContentRendererClient::RunScriptsAtDocumentEnd(
     content::RenderFrame* render_frame) {
-  if (extensions::ExtensionsEnabled())
-    extensions_renderer_client_->RunScriptsAtDocumentEnd(render_frame);
 }
 
 void CefContentRendererClient::WillDestroyCurrentMessageLoop() {

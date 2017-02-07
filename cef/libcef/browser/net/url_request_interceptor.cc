@@ -132,7 +132,7 @@ net::URLRequestJob* CefRequestInterceptor::MaybeInterceptResponse(
   // This flag will be reset by URLRequest::RestartWithJob() calling
   // URLRequest::PrepareToRestart() after this method returns but we need it
   // reset sooner so that we can modify the request headers without asserting.
-  request->set_is_pending(false);
+  // request->set_is_pending(false);
 
   // Update the URLRequest with only the values that have been changed by the
   // client.

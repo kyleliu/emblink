@@ -14,7 +14,6 @@
 #include "base/threading/sequenced_worker_pool.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/common/url_constants.h"
-#include "net/net_features.h"
 #include "net/url_request/data_protocol_handler.h"
 #include "net/url_request/file_protocol_handler.h"
 #include "net/url_request/ftp_protocol_handler.h"
@@ -39,11 +38,11 @@ void InstallInternalProtectedHandlers(
                   content::BrowserThread::GetBlockingPool()->
                       GetTaskRunnerWithShutdownBehavior(
                           base::SequencedWorkerPool::SKIP_ON_SHUTDOWN)))));
-#if !BUILDFLAG(DISABLE_FTP_SUPPORT)
-  protocol_handlers->insert(
-      std::make_pair(url::kFtpScheme,
-          linked_ptr<net::URLRequestJobFactory::ProtocolHandler>(
-              net::FtpProtocolHandler::Create(host_resolver).release())));
+#if !defined(DISABLE_FTP_SUPPORT)
+  // protocol_handlers->insert(
+  //     std::make_pair(url::kFtpScheme,
+  //         linked_ptr<net::URLRequestJobFactory::ProtocolHandler>(
+  //             net::FtpProtocolHandler::Create(host_resolver).release())));
 #endif
 
   for (content::ProtocolHandlerMap::iterator it =

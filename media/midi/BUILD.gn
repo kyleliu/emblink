@@ -28,19 +28,19 @@ config("midi_config") {
 # USB MIDI specific source files that are used in Android port, and unit tests.
 # These can't easily be a source set because "midi" is a component and the
 # component export flags must always be the same.
-usb_midi_sources = [
-  "midi_manager_usb.cc",
-  "midi_manager_usb.h",
-  "usb_midi_descriptor_parser.cc",
-  "usb_midi_descriptor_parser.h",
-  "usb_midi_device.h",
-  "usb_midi_export.h",
-  "usb_midi_input_stream.cc",
-  "usb_midi_input_stream.h",
-  "usb_midi_jack.h",
-  "usb_midi_output_stream.cc",
-  "usb_midi_output_stream.h",
-]
+# usb_midi_sources = [
+#   "midi_manager_usb.cc",
+#   "midi_manager_usb.h",
+#   "usb_midi_descriptor_parser.cc",
+#   "usb_midi_descriptor_parser.h",
+#   "usb_midi_device.h",
+#   "usb_midi_export.h",
+#   "usb_midi_input_stream.cc",
+#   "usb_midi_input_stream.h",
+#   "usb_midi_jack.h",
+#   "usb_midi_output_stream.cc",
+#   "usb_midi_output_stream.h",
+# ]
 
 component("midi") {
   sources = [

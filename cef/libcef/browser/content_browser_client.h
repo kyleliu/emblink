@@ -98,13 +98,6 @@ class CefContentBrowserClient : public content::ContentBrowserClient {
   ScopedVector<content::NavigationThrottle> CreateThrottlesForNavigation(
       content::NavigationHandle* navigation_handle) override;
 
-#if defined(OS_POSIX) && !defined(OS_MACOSX)
-  void GetAdditionalMappedFilesForChildProcess(
-      const base::CommandLine& command_line,
-      int child_process_id,
-      content::FileDescriptorInfo* mappings) override;
-#endif
-
 #if defined(OS_WIN)
   const wchar_t* GetResourceDllName();
   bool PreSpawnRenderer(sandbox::TargetPolicy* policy) override;
@@ -117,10 +110,6 @@ class CefContentBrowserClient : public content::ContentBrowserClient {
   CefDevToolsDelegate* devtools_delegate() const;
 
  private:
-  // Returns the extension or app associated with |site_instance| or NULL.
-  const extensions::Extension* GetExtension(
-      content::SiteInstance* site_instance);
-
   CefBrowserMainParts* browser_main_parts_;
 
   std::unique_ptr<content::PluginServiceFilter> plugin_service_filter_;

@@ -4,12 +4,9 @@
 
 #include "libcef/browser/browser_context.h"
 #include "libcef/browser/content_browser_client.h"
-#include "libcef/browser/extensions/extension_system.h"
 #include "libcef/browser/thread_util.h"
-#include "libcef/common/extensions/extensions_util.h"
 
 #include "base/logging.h"
-#include "chrome/browser/ui/zoom/chrome_zoom_level_prefs.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_thread.h"
@@ -20,8 +17,7 @@ base::AtomicRefCount CefBrowserContext::DebugObjCt = 0;
 #endif
 
 CefBrowserContext::CefBrowserContext(bool is_proxy)
-    : is_proxy_(is_proxy),
-      extension_system_(NULL) {
+    : is_proxy_(is_proxy) {
 #if DCHECK_IS_ON()
   base::AtomicRefCountInc(&DebugObjCt);
 #endif
@@ -39,24 +35,8 @@ CefBrowserContext::~CefBrowserContext() {
 void CefBrowserContext::Initialize() {
   content::BrowserContext::Initialize(this, GetPath());
 
-  const bool extensions_enabled = extensions::ExtensionsEnabled();
-  if (extensions_enabled) {
-    // Create the custom ExtensionSystem first because other KeyedServices
-    // depend on it.
-    // The same CefExtensionSystem instance is shared by CefBrowserContextImpl
-    // and CefBrowserContextProxy objects.
-    extension_system_ = static_cast<extensions::CefExtensionSystem*>(
-        extensions::ExtensionSystem::Get(this));
-    if (is_proxy_) {
-      DCHECK(extension_system_->initialized());
-    } else {
-      extension_system_->InitForRegularProfile(true);
-    }
-  }
-
   resource_context_.reset(new CefResourceContext(
       IsOffTheRecord(),
-      extensions_enabled ? extension_system_->info_map() : NULL,
       GetHandler()));
 
   BrowserContextDependencyManager::GetInstance()->CreateBrowserContextServices(
@@ -67,16 +47,13 @@ void CefBrowserContext::Initialize() {
   PrefService* pref_service = GetPrefs();
   DCHECK(pref_service);
   user_prefs::UserPrefs::Set(this, pref_service);
-
-  if (extensions_enabled && !is_proxy_)
-    extension_system_->Init();
 }
 
 void CefBrowserContext::Shutdown() {
   CEF_REQUIRE_UIT();
 
   // Send notifications to clean up objects associated with this Profile.
-  MaybeSendDestroyedNotification();
+  // MaybeSendDestroyedNotification();
 
   // Remove any BrowserContextKeyedServiceFactory associations. This must be
   // called before the ProxyService owned by CefBrowserContextImpl is destroyed.
@@ -118,11 +95,6 @@ net::URLRequestContextGetter*
     const base::FilePath& partition_path,
     bool in_memory) {
   return nullptr;
-}
-
-ChromeZoomLevelPrefs* CefBrowserContext::GetZoomLevelPrefs() {
-  return static_cast<ChromeZoomLevelPrefs*>(
-      GetStoragePartition(this, NULL)->GetZoomLevelDelegate());
 }
 
 void CefBrowserContext::OnRenderFrameDeleted(int render_process_id,

@@ -8,8 +8,8 @@
 #include "base/callback_forward.h"
 #include "base/macros.h"
 #include "base/memory/weak_ptr.h"
-#include "chrome/browser/permissions/permission_request_id.h"
 #include "components/content_settings/core/common/content_settings.h"
+#include "libcef/browser/permissions/permission_request_id.h"
 
 class CefBrowserContext;
 

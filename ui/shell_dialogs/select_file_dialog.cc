@@ -121,4 +121,12 @@ void SelectFileDialog::CancelFileSelection(void* params) {
     listener_->FileSelectionCanceled(params);
 }
 
+#if !defined(OS_LINUX) && !defined(OS_MACOSX) && !defined(OS_WIN)
+SelectFileDialog* CreateSelectFileDialog(SelectFileDialog::Listener* listener,
+                                         SelectFilePolicy* policy) {
+  NOTIMPLEMENTED();
+  return NULL;
+}
+#endif
+
 }  // namespace ui

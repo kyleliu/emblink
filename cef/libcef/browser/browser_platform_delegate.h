@@ -55,9 +55,7 @@ class CefBrowserPlatformDelegate {
   // Called to create the view objects for a new WebContents. Will only be
   // called a single time per instance. May be called on multiple threads. Only
   // used with windowless rendering.
-  virtual void CreateViewForWebContents(
-      content::WebContentsView** view,
-      content::RenderViewHostDelegateView** delegate_view);
+  virtual void CreateViewForWebContents();
 
   // Called after the WebContents for the browser is created. Will only be
   // called a single time per instance.
@@ -249,8 +247,7 @@ class CefBrowserPlatformDelegate {
       blink::WebDragOperationsMask allowed_ops,
       const gfx::ImageSkia& image,
       const gfx::Vector2d& image_offset,
-      const content::DragEventSourceInfo& event_info,
-      content::RenderWidgetHostImpl* source_rwh);
+      const content::DragEventSourceInfo& event_info);
   virtual void UpdateDragCursor(blink::WebDragOperation operation);
   virtual void DragSourceEndedAt(int x, int y,
                                  cef_drag_operations_mask_t op);

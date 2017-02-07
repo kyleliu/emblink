@@ -15,9 +15,12 @@
 
 #include "base/compiler_specific.h"
 #include "content/public/common/content_client.h"
-#include "content/public/common/pepper_plugin_info.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "url/url_util.h"
+
+namespace content {
+struct PepperPluginInfo;
+}
 
 class CefContentClient : public content::ContentClient,
                          public ui::ResourceBundle::Delegate {
@@ -80,11 +83,6 @@ class CefContentClient : public content::ContentClient,
   void set_pack_loading_disabled(bool val) { pack_loading_disabled_ = val; }
   bool pack_loading_disabled() const { return pack_loading_disabled_; }
   void set_allow_pack_file_load(bool val) { allow_pack_file_load_ = val; }
-
-  static void SetPDFEntryFunctions(
-      content::PepperPluginInfo::GetInterfaceFunc get_interface,
-      content::PepperPluginInfo::PPP_InitializeModuleFunc initialize_module,
-      content::PepperPluginInfo::PPP_ShutdownModuleFunc shutdown_module);
 
  private:
   // ui::ResourceBundle::Delegate methods.

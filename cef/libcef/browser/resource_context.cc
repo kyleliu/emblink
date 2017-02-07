@@ -23,25 +23,11 @@
 #include "net/ssl/client_cert_store_mac.h"
 #endif
 
-namespace {
-
-bool ShouldProxyUserData(const void* key) {
-  // If this value is not proxied WebUI will fail to load.
-  if (key == content::GetURLDataManagerBackendUserDataKey())
-    return true;
-
-  return false;
-}
-
-}  // namespace
-
 CefResourceContext::CefResourceContext(
     bool is_off_the_record,
-    extensions::InfoMap* extension_info_map,
     CefRefPtr<CefRequestContextHandler> handler)
     : parent_(nullptr),
       is_off_the_record_(is_off_the_record),
-      extension_info_map_(extension_info_map),
       handler_(handler) {
 }
 
@@ -57,27 +43,6 @@ CefResourceContext::~CefResourceContext() {
     content::BrowserThread::ReleaseSoon(
           content::BrowserThread::IO, FROM_HERE, raw_getter);
   }
-}
-
-base::SupportsUserData::Data* CefResourceContext::GetUserData(const void* key)
-    const {
-  if (parent_ && ShouldProxyUserData(key))
-    return parent_->GetUserData(key);
-  return content::ResourceContext::GetUserData(key);
-}
-
-void CefResourceContext::SetUserData(const void* key, Data* data) {
-  if (parent_ && ShouldProxyUserData(key))
-    parent_->SetUserData(key, data);
-  else
-    content::ResourceContext::SetUserData(key, data);
-}
-
-void CefResourceContext::RemoveUserData(const void* key) {
-  if (parent_ && ShouldProxyUserData(key))
-    parent_->RemoveUserData(key);
-  else
-    content::ResourceContext::RemoveUserData(key);
 }
 
 net::HostResolver* CefResourceContext::GetHostResolver() {
@@ -99,7 +64,7 @@ std::unique_ptr<net::ClientCertStore>
   return std::unique_ptr<net::ClientCertStore>(new net::ClientCertStoreWin());
 #elif defined(OS_MACOSX)
   return std::unique_ptr<net::ClientCertStore>(new net::ClientCertStoreMac());
-#elif defined(USE_OPENSSL)
+#elif defined(USE_OPENSSL) || defined(OS_ANDROID)
   // OpenSSL does not use the ClientCertStore infrastructure. On Android client
   // cert matching is done by the OS as part of the call to show the cert
   // selection dialog.
