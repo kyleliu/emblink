@@ -87,6 +87,13 @@
       'include/internal/cef_linux.h',
       'include/internal/cef_types_linux.h',
     ],
+    'includes_android': [
+      'include/base/internal/cef_atomicops_atomicword_compat.h',
+      'include/base/internal/cef_atomicops_arm_gcc.h',
+      'include/base/internal/cef_atomicops_x86_gcc.h',
+      'include/internal/cef_android.h',
+      'include/internal/cef_types_android.h',
+    ],
     'libcef_sources_common': [
       'libcef_dll/cpptoc/cpptoc.h',
       'libcef_dll/ctocpp/base_ctocpp.cc',
@@ -379,6 +386,10 @@
     'cefsimple_sources_linux': [
       'tests/cefsimple/cefsimple_linux.cc',
       'tests/cefsimple/simple_handler_linux.cc',
+    ],
+    'cefsimple_sources_android': [
+      'tests/cefsimple/cefsimple_android.cc',
+      'tests/cefsimple/simple_handler_android.cc',
     ],
     'ceftests_sources_common': [
       'tests/ceftests/browser_info_map_unittest.cc',

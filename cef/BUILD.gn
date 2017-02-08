@@ -1708,6 +1708,15 @@ if (is_mac) {
         configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
       }
     }
+
+    if (is_android) {
+        sources += gypi_paths2.includes_android +
+                   gypi_paths2.cefsimple_sources_android
+        if (!is_component_build) {
+          # Set rpath to find our own libfreetype even in a non-component build.
+          configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
+        }
+    }
   }
 
 

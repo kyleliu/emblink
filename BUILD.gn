@@ -61,5 +61,6 @@ group("gn_all") {
   testonly = true
   deps = [
     "//cef:libcef",
+    "//cef:cefsimple",
   ]
 }
