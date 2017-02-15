@@ -6,13 +6,10 @@
 
 #include "build/build_config.h"
 
+#include "content/public/browser/content_browser_client.h"
 #include "content/public/gpu/content_gpu_client.h"
 #include "content/public/renderer/content_renderer_client.h"
 #include "content/public/utility/content_utility_client.h"
-
-#if !defined(CHROME_MULTIPLE_DLL_CHILD)
-#include "content/public/browser/content_browser_client.h"
-#endif
 
 namespace content {
 
@@ -55,35 +52,19 @@ bool ContentMainDelegate::ShouldEnableProfilerRecording() {
 }
 
 ContentBrowserClient* ContentMainDelegate::CreateContentBrowserClient() {
-#if defined(CHROME_MULTIPLE_DLL_CHILD)
-  return NULL;
-#else
   return new ContentBrowserClient();
-#endif
 }
 
 ContentGpuClient* ContentMainDelegate::CreateContentGpuClient() {
-#if defined(CHROME_MULTIPLE_DLL_BROWSER)
-  return NULL;
-#else
   return new ContentGpuClient();
-#endif
 }
 
 ContentRendererClient* ContentMainDelegate::CreateContentRendererClient() {
-#if defined(CHROME_MULTIPLE_DLL_BROWSER)
-  return NULL;
-#else
   return new ContentRendererClient();
-#endif
 }
 
 ContentUtilityClient* ContentMainDelegate::CreateContentUtilityClient() {
-#if defined(CHROME_MULTIPLE_DLL_BROWSER)
-  return NULL;
-#else
   return new ContentUtilityClient();
-#endif
 }
 
 }  // namespace content

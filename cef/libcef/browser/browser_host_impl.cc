@@ -288,9 +288,7 @@ CefRefPtr<CefBrowserHostImpl> CefBrowserHostImpl::Create(
 
   if (platform_delegate->IsWindowless()) {
     // Create the OSR view for the WebContents.
-    // platform_delegate->CreateViewForWebContents(
-    //     &wc_create_params.view,
-    //     &wc_create_params.delegate_view);
+    platform_delegate->CreateViewForWebContents();
   }
 
   content::WebContents* web_contents =

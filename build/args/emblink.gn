@@ -20,7 +20,7 @@ use_aura = true
 
 # In order to simplify deployment we build ICU data file
 # into binary.
-icu_use_data_file = false
+icu_use_data_file = true
 
 # Use embedded data instead external files for headless in order
 # to simplify deployment.

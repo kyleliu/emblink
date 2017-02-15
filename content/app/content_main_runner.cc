@@ -158,19 +158,15 @@ void InitializeFieldTrialAndFeatureList(
 
 }  // namespace
 
-#if !defined(CHROME_MULTIPLE_DLL_CHILD)
 base::LazyInstance<ContentBrowserClient>
     g_empty_content_browser_client = LAZY_INSTANCE_INITIALIZER;
-#endif  //  !CHROME_MULTIPLE_DLL_CHILD
 
-#if !defined(CHROME_MULTIPLE_DLL_BROWSER)
 base::LazyInstance<ContentGpuClient>
     g_empty_content_gpu_client = LAZY_INSTANCE_INITIALIZER;
 base::LazyInstance<ContentRendererClient>
     g_empty_content_renderer_client = LAZY_INSTANCE_INITIALIZER;
 base::LazyInstance<ContentUtilityClient>
     g_empty_content_utility_client = LAZY_INSTANCE_INITIALIZER;
-#endif  // !CHROME_MULTIPLE_DLL_BROWSER
 
 #if defined(V8_USE_EXTERNAL_STARTUP_DATA) && defined(OS_ANDROID)
 #if defined __LP64__
@@ -246,16 +242,13 @@ class ContentClientInitializer {
   static void Set(const std::string& process_type,
                   ContentMainDelegate* delegate) {
     ContentClient* content_client = GetContentClient();
-#if !defined(CHROME_MULTIPLE_DLL_CHILD)
     if (process_type.empty()) {
       if (delegate)
         content_client->browser_ = delegate->CreateContentBrowserClient();
       if (!content_client->browser_)
         content_client->browser_ = &g_empty_content_browser_client.Get();
     }
-#endif  // !CHROME_MULTIPLE_DLL_CHILD
 
-#if !defined(CHROME_MULTIPLE_DLL_BROWSER)
     base::CommandLine* cmd = base::CommandLine::ForCurrentProcess();
     if (process_type == switches::kGpuProcess ||
         cmd->HasSwitch(switches::kSingleProcess) ||
@@ -282,7 +275,6 @@ class ContentClientInitializer {
       if (!content_client->utility_)
         content_client->utility_ = &g_empty_content_utility_client.Get();
     }
-#endif  // !CHROME_MULTIPLE_DLL_BROWSER
   }
 };
 
@@ -348,24 +340,12 @@ int RunZygote(const MainFunctionParams& main_function_params,
 #endif  // defined(OS_POSIX) && !defined(OS_MACOSX) && !defined(OS_ANDROID)
 
 static void RegisterMainThreadFactories() {
-#if !defined(CHROME_MULTIPLE_DLL_BROWSER) && !defined(CHROME_MULTIPLE_DLL_CHILD)
   UtilityProcessHostImpl::RegisterUtilityMainThreadFactory(
       CreateInProcessUtilityThread);
   RenderProcessHostImpl::RegisterRendererMainThreadFactory(
       CreateInProcessRendererThread);
   GpuProcessHost::RegisterGpuMainThreadFactory(
       CreateInProcessGpuThread);
-#else
-  base::CommandLine& command_line = *base::CommandLine::ForCurrentProcess();
-  if (command_line.HasSwitch(switches::kSingleProcess)) {
-    LOG(FATAL) <<
-        "--single-process is not supported in chrome multiple dll browser.";
-  }
-  if (command_line.HasSwitch(switches::kInProcessGPU)) {
-    LOG(FATAL) <<
-        "--in-process-gpu is not supported in chrome multiple dll browser.";
-  }
-#endif  // !CHROME_MULTIPLE_DLL_BROWSER && !CHROME_MULTIPLE_DLL_CHILD
 }
 
 // Run the FooMain() for a given process type.
@@ -376,10 +356,7 @@ int RunNamedProcessTypeMain(
     const MainFunctionParams& main_function_params,
     ContentMainDelegate* delegate) {
   static const MainFunction kMainFunctions[] = {
-#if !defined(CHROME_MULTIPLE_DLL_CHILD)
     { "",                            BrowserMain },
-#endif
-#if !defined(CHROME_MULTIPLE_DLL_BROWSER)
 #if defined(ENABLE_PLUGINS)
     { switches::kPpapiPluginProcess, PpapiPluginMain },
     { switches::kPpapiBrokerProcess, PpapiBrokerMain },
@@ -387,7 +364,6 @@ int RunNamedProcessTypeMain(
     { switches::kUtilityProcess,     UtilityMain },
     { switches::kRendererProcess,    RendererMain },
     { switches::kGpuProcess,         GpuMain },
-#endif  // !CHROME_MULTIPLE_DLL_BROWSER
   };
 
   RegisterMainThreadFactories();
