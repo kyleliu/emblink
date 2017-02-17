@@ -17,8 +17,6 @@
 #include "libcef/browser/devtools_manager_delegate.h"
 #include "libcef/browser/media_capture_devices_dispatcher.h"
 #include "libcef/browser/net/chrome_scheme_handler.h"
-#include "libcef/browser/pepper/browser_pepper_host_factory.h"
-#include "libcef/browser/plugins/plugin_service_filter.h"
 #include "libcef/browser/prefs/renderer_prefs.h"
 #include "libcef/browser/resource_dispatcher_host_delegate.h"
 #include "libcef/browser/speech_recognition_manager_delegate.h"
@@ -43,8 +41,6 @@
 #include "components/navigation_interception/navigation_params.h"
 #include "content/browser/frame_host/navigation_handle_impl.h"
 #include "content/browser/frame_host/render_frame_host_impl.h"
-#include "content/browser/plugin_service_impl.h"
-#include "content/public/browser/browser_ppapi_host.h"
 #include "content/public/browser/child_process_security_policy.h"
 #include "content/public/browser/client_certificate_delegate.h"
 #include "content/public/browser/navigation_handle.h"
@@ -61,7 +57,6 @@
 #include "content/public/common/storage_quota_params.h"
 #include "content/public/common/web_preferences.h"
 #include "net/ssl/ssl_cert_request_info.h"
-#include "ppapi/host/ppapi_host.h"
 #include "third_party/WebKit/public/web/WebWindowFeatures.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/ui_base_switches.h"
@@ -353,9 +348,6 @@ void FindFrameHostForNavigationHandle(
 
 CefContentBrowserClient::CefContentBrowserClient()
     : browser_main_parts_(NULL) {
-  plugin_service_filter_.reset(new CefPluginServiceFilter);
-  content::PluginServiceImpl::GetInstance()->SetFilter(
-      plugin_service_filter_.get());
 }
 
 CefContentBrowserClient::~CefContentBrowserClient() {
@@ -670,9 +662,6 @@ std::string CefContentBrowserClient::GetDefaultDownloadName() {
 
 void CefContentBrowserClient::DidCreatePpapiPlugin(
     content::BrowserPpapiHost* browser_host) {
-  browser_host->GetPpapiHost()->AddHostFactoryFilter(
-      std::unique_ptr<ppapi::host::HostFactory>(
-          new CefBrowserPepperHostFactory(browser_host)));
 }
 
 content::DevToolsManagerDelegate*

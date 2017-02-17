@@ -54,10 +54,6 @@
 #include "url/gurl.h"
 #include "url/origin.h"
 
-#if defined(ENABLE_PLUGINS)
-#include "content/common/pepper_renderer_instance_data.h"
-#endif
-
 // Singly-included section for type definitions.
 #ifndef CONTENT_COMMON_FRAME_MESSAGES_H_
 #define CONTENT_COMMON_FRAME_MESSAGES_H_
@@ -563,16 +559,6 @@ IPC_STRUCT_BEGIN(FrameHostMsg_ShowPopup_Params)
 IPC_STRUCT_END()
 #endif
 
-#if defined(ENABLE_PLUGINS)
-IPC_STRUCT_TRAITS_BEGIN(content::PepperRendererInstanceData)
-  IPC_STRUCT_TRAITS_MEMBER(render_process_id)
-  IPC_STRUCT_TRAITS_MEMBER(render_frame_id)
-  IPC_STRUCT_TRAITS_MEMBER(document_url)
-  IPC_STRUCT_TRAITS_MEMBER(plugin_url)
-  IPC_STRUCT_TRAITS_MEMBER(is_potentially_secure_plugin_context)
-IPC_STRUCT_TRAITS_END()
-#endif
-
 // -----------------------------------------------------------------------------
 // Messages sent from the browser to the renderer.
 
@@ -896,18 +882,6 @@ IPC_MESSAGE_ROUTED2(FrameMsg_SaveImageAt,
                     int /* x */,
                     int /* y */)
 
-#if defined(ENABLE_PLUGINS)
-// Notifies the renderer of updates to the Plugin Power Saver origin whitelist.
-IPC_MESSAGE_ROUTED1(FrameMsg_UpdatePluginContentOriginWhitelist,
-                    std::set<url::Origin> /* origin_whitelist */)
-
-// This message notifies that the frame that the volume of the Pepper instance
-// for |pp_instance| should be changed to |volume|.
-IPC_MESSAGE_ROUTED2(FrameMsg_SetPepperVolume,
-                    int32_t /* pp_instance */,
-                    double /* volume */)
-#endif  // defined(ENABLE_PLUGINS)
-
 // Used to instruct the RenderFrame to go into "view source" mode. This should
 // only be sent to the main frame.
 IPC_MESSAGE_ROUTED0(FrameMsg_EnableViewSourceMode)
@@ -1115,144 +1089,6 @@ IPC_SYNC_MESSAGE_CONTROL3_1(FrameHostMsg_Are3DAPIsBlocked,
                             GURL /* top_origin_url */,
                             content::ThreeDAPIType /* requester */,
                             bool /* blocked */)
-
-#if defined(ENABLE_PLUGINS)
-// Notification sent from a renderer to the browser that a Pepper plugin
-// instance is created in the DOM.
-IPC_MESSAGE_ROUTED1(FrameHostMsg_PepperInstanceCreated,
-                    int32_t /* pp_instance */)
-
-// Notification sent from a renderer to the browser that a Pepper plugin
-// instance is deleted from the DOM.
-IPC_MESSAGE_ROUTED1(FrameHostMsg_PepperInstanceDeleted,
-                    int32_t /* pp_instance */)
-
-// Sent to the browser when the renderer detects it is blocked on a pepper
-// plugin message for too long. This is also sent when it becomes unhung
-// (according to the value of is_hung). The browser can give the user the
-// option of killing the plugin.
-IPC_MESSAGE_ROUTED3(FrameHostMsg_PepperPluginHung,
-                    int /* plugin_child_id */,
-                    base::FilePath /* path */,
-                    bool /* is_hung */)
-
-// Sent by the renderer process to indicate that a plugin instance has crashed.
-// Note: |plugin_pid| should not be trusted. The corresponding process has
-// probably died. Moreover, the ID may have been reused by a new process. Any
-// usage other than displaying it in a prompt to the user is very likely to be
-// wrong.
-IPC_MESSAGE_ROUTED2(FrameHostMsg_PluginCrashed,
-                    base::FilePath /* plugin_path */,
-                    base::ProcessId /* plugin_pid */)
-
-// Notification sent from a renderer to the browser that a Pepper plugin
-// instance has started playback.
-IPC_MESSAGE_ROUTED1(FrameHostMsg_PepperStartsPlayback,
-                    int32_t /* pp_instance */)
-
-// Notification sent from a renderer to the browser that a Pepper plugin
-// instance has stopped playback.
-IPC_MESSAGE_ROUTED1(FrameHostMsg_PepperStopsPlayback,
-                    int32_t /* pp_instance */)
-
-// Used to get the list of plugins. |main_frame_origin| is used to handle
-// exceptions for plugin content settings.
-IPC_SYNC_MESSAGE_CONTROL2_1(FrameHostMsg_GetPlugins,
-                            bool /* refresh*/,
-                            url::Origin /* main_frame_origin */,
-                            std::vector<content::WebPluginInfo> /* plugins */)
-
-// Return information about a plugin for the given URL and MIME
-// type. If there is no matching plugin, |found| is false.
-// |actual_mime_type| is the actual mime type supported by the
-// found plugin.
-IPC_SYNC_MESSAGE_CONTROL4_3(FrameHostMsg_GetPluginInfo,
-                            int /* render_frame_id */,
-                            GURL /* url */,
-                            url::Origin /* main_frame_origin */,
-                            std::string /* mime_type */,
-                            bool /* found */,
-                            content::WebPluginInfo /* plugin info */,
-                            std::string /* actual_mime_type */)
-
-// A renderer sends this to the browser process when it wants to temporarily
-// whitelist an origin's plugin content as essential. This temporary whitelist
-// is specific to a top level frame, and is cleared when the whitelisting
-// RenderFrame is destroyed.
-IPC_MESSAGE_ROUTED1(FrameHostMsg_PluginContentOriginAllowed,
-                    url::Origin /* content_origin */)
-
-// A renderer sends this to the browser process when it wants to create a ppapi
-// plugin.  The browser will create the plugin process if necessary, and will
-// return a handle to the channel on success.
-//
-// The plugin_child_id is the ChildProcessHost ID assigned in the browser
-// process. This ID is valid only in the context of the browser process and is
-// used to identify the proper process when the renderer notifies it that the
-// plugin is hung.
-//
-// On error an empty string and null handles are returned.
-IPC_SYNC_MESSAGE_CONTROL1_3(FrameHostMsg_OpenChannelToPepperPlugin,
-                            base::FilePath /* path */,
-                            IPC::ChannelHandle /* handle to channel */,
-                            base::ProcessId /* plugin_pid */,
-                            int /* plugin_child_id */)
-
-// Message from the renderer to the browser indicating the in-process instance
-// has been created.
-IPC_MESSAGE_CONTROL2(FrameHostMsg_DidCreateInProcessInstance,
-                     int32_t /* instance */,
-                     content::PepperRendererInstanceData /* instance_data */)
-
-// Message from the renderer to the browser indicating the in-process instance
-// has been destroyed.
-IPC_MESSAGE_CONTROL1(FrameHostMsg_DidDeleteInProcessInstance,
-                     int32_t /* instance */)
-
-// Notification that a plugin has created a new plugin instance. The parameters
-// indicate:
-//  - The plugin process ID that we're creating the instance for.
-//  - The instance ID of the instance being created.
-//  - A PepperRendererInstanceData struct which contains properties from the
-//    renderer which are associated with the plugin instance. This includes the
-//    routing ID of the associated RenderFrame and the URL of plugin.
-//  - Whether the plugin we're creating an instance for is external or internal.
-//
-// This message must be sync even though it returns no parameters to avoid
-// a race condition with the plugin process. The plugin process sends messages
-// to the browser that assume the browser knows about the instance. We need to
-// make sure that the browser actually knows about the instance before we tell
-// the plugin to run.
-IPC_SYNC_MESSAGE_CONTROL4_0(
-    FrameHostMsg_DidCreateOutOfProcessPepperInstance,
-    int /* plugin_child_id */,
-    int32_t /* pp_instance */,
-    content::PepperRendererInstanceData /* creation_data */,
-    bool /* is_external */)
-
-// Notification that a plugin has destroyed an instance. This is the opposite of
-// the "DidCreate" message above.
-IPC_MESSAGE_CONTROL3(FrameHostMsg_DidDeleteOutOfProcessPepperInstance,
-                     int /* plugin_child_id */,
-                     int32_t /* pp_instance */,
-                     bool /* is_external */)
-
-// A renderer sends this to the browser process when it wants to
-// create a ppapi broker.  The browser will create the broker process
-// if necessary, and will return a handle to the channel on success.
-// On error an empty string is returned.
-// The browser will respond with ViewMsg_PpapiBrokerChannelCreated.
-IPC_MESSAGE_CONTROL2(FrameHostMsg_OpenChannelToPpapiBroker,
-                     int /* routing_id */,
-                     base::FilePath /* path */)
-
-// A renderer sends this to the browser process when it throttles or unthrottles
-// a plugin instance for the Plugin Power Saver feature.
-IPC_MESSAGE_CONTROL3(FrameHostMsg_PluginInstanceThrottleStateChange,
-                     int /* plugin_child_id */,
-                     int32_t /* pp_instance */,
-                     bool /* is_throttled */)
-#endif  // defined(ENABLE_PLUGINS)
 
 // Satisfies a Surface destruction dependency associated with |sequence|.
 IPC_MESSAGE_ROUTED1(FrameHostMsg_SatisfySequence,

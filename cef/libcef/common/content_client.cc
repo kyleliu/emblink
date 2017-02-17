@@ -28,7 +28,6 @@
 #include "content/public/common/content_constants.h"
 #include "content/public/common/content_switches.h"
 #include "content/public/common/user_agent.h"
-#include "ppapi/shared_impl/ppapi_permissions.h"
 #include "ui/base/resource/resource_bundle.h"
 
 namespace {

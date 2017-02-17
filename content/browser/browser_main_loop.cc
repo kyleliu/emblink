@@ -162,15 +162,6 @@
 #endif  // !defined(OS_ANDROID)
 #endif  // defined(OS_POSIX) && !defined(OS_MACOSX)
 
-
-#if defined(ENABLE_PLUGINS)
-#include "content/browser/plugin_service_impl.h"
-#endif
-
-#if defined(ENABLE_MOJO_CDM) && defined(ENABLE_PEPPER_CDMS)
-#include "content/browser/media/cdm_service_impl.h"
-#endif
-
 #if defined(USE_X11)
 #include "gpu/config/gpu_driver_bug_workaround_type.h"
 #include "ui/base/x/x11_util_internal.h"  // nogncheck
@@ -722,24 +713,6 @@ int BrowserMainLoop::PreCreateThreads() {
 #elif defined(OS_WIN)
   memory_pressure_monitor_.reset(CreateWinMemoryPressureMonitor(
       parsed_command_line_));
-#endif
-
-#if defined(ENABLE_PLUGINS)
-  // Prior to any processing happening on the IO thread, we create the
-  // plugin service as it is predominantly used from the IO thread,
-  // but must be created on the main thread. The service ctor is
-  // inexpensive and does not invoke the io_thread() accessor.
-  {
-    TRACE_EVENT0("startup", "BrowserMainLoop::CreateThreads:PluginService");
-    PluginService::GetInstance()->Init();
-  }
-#endif
-
-#if defined(ENABLE_MOJO_CDM) && defined(ENABLE_PEPPER_CDMS)
-  // Prior to any processing happening on the IO thread, we create the
-  // CDM service as it is predominantly used from the IO thread. This must
-  // be called on the main thread since it involves file path checks.
-  CdmService::GetInstance()->Init();
 #endif
 
 #if defined(OS_MACOSX)

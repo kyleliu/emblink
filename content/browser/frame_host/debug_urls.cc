@@ -21,13 +21,7 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/common/content_constants.h"
 #include "content/public/common/url_constants.h"
-#include "ppapi/proxy/ppapi_messages.h"
-// #include "third_party/kasko/kasko_features.h"
 #include "url/gurl.h"
-
-#if defined(ENABLE_PLUGINS)
-#include "content/browser/ppapi_plugin_process_host.h"
-#endif
 
 namespace content {
 
@@ -55,20 +49,6 @@ const char kAsanCorruptHeap[] = "/browser-corrupt-heap";
 // #endif
 
 void HandlePpapiFlashDebugURL(const GURL& url) {
-#if defined(ENABLE_PLUGINS)
-  bool crash = url == GURL(kChromeUIPpapiFlashCrashURL);
-
-  std::vector<PpapiPluginProcessHost*> hosts;
-  PpapiPluginProcessHost::FindByName(
-      base::UTF8ToUTF16(kFlashPluginName), &hosts);
-  for (std::vector<PpapiPluginProcessHost*>::iterator iter = hosts.begin();
-       iter != hosts.end(); ++iter) {
-    if (crash)
-      (*iter)->Send(new PpapiMsg_Crash());
-    else
-      (*iter)->Send(new PpapiMsg_Hang());
-  }
-#endif
 }
 
 bool IsKaskoDebugURL(const GURL& url) {

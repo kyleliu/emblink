@@ -806,28 +806,6 @@ void RendererBlinkPlatformImpl::getPluginList(
     bool refresh,
     const blink::WebSecurityOrigin& mainFrameOrigin,
     blink::WebPluginListBuilder* builder) {
-#if defined(ENABLE_PLUGINS)
-  std::vector<WebPluginInfo> plugins;
-  if (!plugin_refresh_allowed_)
-    refresh = false;
-  RenderThread::Get()->Send(
-      new FrameHostMsg_GetPlugins(refresh, mainFrameOrigin, &plugins));
-  for (const WebPluginInfo& plugin : plugins) {
-    builder->addPlugin(
-        plugin.name, plugin.desc,
-        plugin.path.BaseName().AsUTF16Unsafe());
-
-    for (const WebPluginMimeType& mime_type : plugin.mime_types) {
-      builder->addMediaTypeToLastPlugin(
-          WebString::fromUTF8(mime_type.mime_type), mime_type.description);
-
-      for (const auto& extension : mime_type.file_extensions) {
-        builder->addFileExtensionToLastMediaType(
-            WebString::fromUTF8(extension));
-      }
-    }
-  }
-#endif
 }
 
 //------------------------------------------------------------------------------

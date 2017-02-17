@@ -488,9 +488,6 @@ class CONTENT_EXPORT RenderThreadImpl
       scoped_refptr<base::SingleThreadTaskRunner>& resource_task_queue);
 
   void OnTransferBitmap(const SkBitmap& bitmap, int resource_id);
-#if defined(ENABLE_PLUGINS)
-  void OnPurgePluginListCache(bool reload_pages);
-#endif
   void OnNetworkConnectionChanged(
       net::NetworkChangeNotifier::ConnectionType type,
       double max_bandwidth_mbps);

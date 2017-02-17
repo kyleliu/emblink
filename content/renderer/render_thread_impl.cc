@@ -1691,9 +1691,6 @@ bool RenderThreadImpl::OnControlMessageReceived(const IPC::Message& msg) {
     IPC_MESSAGE_HANDLER(ViewMsg_UpdateScrollbarTheme, OnUpdateScrollbarTheme)
     IPC_MESSAGE_HANDLER(ViewMsg_SystemColorsChanged, OnSystemColorsChanged)
 #endif
-#if defined(ENABLE_PLUGINS)
-    IPC_MESSAGE_HANDLER(ViewMsg_PurgePluginListCache, OnPurgePluginListCache)
-#endif
     IPC_MESSAGE_UNHANDLED(handled = false)
   IPC_END_MESSAGE_MAP()
   return handled;
@@ -1931,20 +1928,6 @@ gpu::GpuChannelHost* RenderThreadImpl::GetGpuChannel() {
     return nullptr;
   return gpu_channel_.get();
 }
-
-#if defined(ENABLE_PLUGINS)
-void RenderThreadImpl::OnPurgePluginListCache(bool reload_pages) {
-  // The call below will cause a GetPlugins call with refresh=true, but at this
-  // point we already know that the browser has refreshed its list, so disable
-  // refresh temporarily to prevent each renderer process causing the list to be
-  // regenerated.
-  blink_platform_impl_->set_plugin_refresh_allowed(false);
-  blink::resetPluginCache(reload_pages);
-  blink_platform_impl_->set_plugin_refresh_allowed(true);
-
-  FOR_EACH_OBSERVER(RenderThreadObserver, observers_, PluginListChanged());
-}
-#endif
 
 void RenderThreadImpl::OnNetworkConnectionChanged(
     net::NetworkChangeNotifier::ConnectionType type,

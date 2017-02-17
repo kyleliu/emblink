@@ -60,11 +60,6 @@
 #include <sys/prctl.h>
 #endif
 
-#if defined(ENABLE_PLUGINS)
-#include "content/common/pepper_plugin_list.h"
-#include "content/public/common/pepper_plugin_info.h"
-#endif
-
 #if defined(ENABLE_WEBRTC)
 #include "third_party/webrtc_overrides/init_webrtc.h"
 #endif
@@ -311,28 +306,6 @@ struct tm* localtime64_r_override(const time_t* timep, struct tm* result) {
   return res;
 }
 
-#if defined(ENABLE_PLUGINS)
-// Loads the (native) libraries but does not initialize them (i.e., does not
-// call PPP_InitializeModule). This is needed by the zygote on Linux to get
-// access to the plugins before entering the sandbox.
-void PreloadPepperPlugins() {
-  std::vector<PepperPluginInfo> plugins;
-  ComputePepperPluginList(&plugins);
-  for (const auto& plugin : plugins) {
-    if (!plugin.is_internal) {
-      base::NativeLibraryLoadError error;
-      base::NativeLibrary library = base::LoadNativeLibrary(plugin.path,
-                                                            &error);
-      VLOG_IF(1, !library) << "Unable to load plugin "
-                           << plugin.path.value() << " "
-                           << error.ToString();
-
-      (void)library;  // Prevent release-mode warning.
-    }
-  }
-}
-#endif
-
 // This function triggers the static and lazy construction of objects that need
 // to be created before imposing the sandbox.
 static void ZygotePreSandboxInit() {
@@ -357,10 +330,6 @@ static void ZygotePreSandboxInit() {
   // will work inside the sandbox.
   RAND_set_urandom_fd(base::GetUrandomFD());
 
-#if defined(ENABLE_PLUGINS)
-  // Ensure access to the Pepper plugins before the sandbox is turned on.
-  PreloadPepperPlugins();
-#endif
 #if defined(ENABLE_WEBRTC)
   InitializeWebRtcModule();
 #endif

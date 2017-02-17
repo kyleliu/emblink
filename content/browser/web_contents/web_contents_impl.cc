@@ -61,7 +61,6 @@
 #include "content/browser/media/media_web_contents_observer.h"
 #include "content/browser/media/session/media_session.h"
 #include "content/browser/message_port_message_filter.h"
-#include "content/browser/plugin_content_origin_whitelist.h"
 #include "content/browser/renderer_host/render_process_host_impl.h"
 #include "content/browser/renderer_host/render_view_host_delegate_view.h"
 #include "content/browser/renderer_host/render_view_host_impl.h"
@@ -143,10 +142,6 @@
 #include "content/public/common/service_manager_connection.h"
 #include "ui/aura/mus/mus_util.h"
 #endif
-
-#if defined(ENABLE_PLUGINS)
-#include "content/browser/media/session/pepper_playback_observer.h"
-#endif  // ENABLE_PLUGINS
 
 namespace content {
 namespace {
@@ -445,9 +440,6 @@ WebContentsImpl::WebContentsImpl(BrowserContext* browser_context)
       base::Bind(&WebContentsImpl::OnFrameRemoved,
                  base::Unretained(this)));
   media_web_contents_observer_.reset(new MediaWebContentsObserver(this));
-#if defined (ENABLE_PLUGINS)
-  pepper_playback_observer_.reset(new PepperPlaybackObserver(this));
-#endif
   loader_io_thread_notifier_.reset(new LoaderIOThreadNotifier(this));
   wake_lock_service_context_.reset(new WakeLockServiceContext(
       BrowserThread::GetTaskRunnerForThread(BrowserThread::FILE),
@@ -524,12 +516,6 @@ WebContentsImpl::~WebContentsImpl() {
           std::unique_ptr<NavigationHandleImpl>());
     }
   }
-
-#if defined(ENABLE_PLUGINS)
-  // Call this before WebContentsDestroyed() is broadcasted since
-  // AudioFocusManager will be destroyed after that.
-  pepper_playback_observer_.reset();
-#endif  // defined(ENABLED_PLUGINS)
 
   FOR_EACH_OBSERVER(WebContentsObserver, observers_,
                     FrameDeleted(root->current_frame_host()));
@@ -717,23 +703,6 @@ bool WebContentsImpl::OnMessageReceived(RenderViewHost* render_view_host,
     IPC_MESSAGE_HANDLER(FrameHostMsg_Find_Reply, OnFindReply)
     IPC_MESSAGE_HANDLER(ViewHostMsg_AppCacheAccessed, OnAppCacheAccessed)
     IPC_MESSAGE_HANDLER(ViewHostMsg_WebUISend, OnWebUISend)
-#if defined(ENABLE_PLUGINS)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PepperInstanceCreated,
-                        OnPepperInstanceCreated)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PepperInstanceDeleted,
-                        OnPepperInstanceDeleted)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PepperPluginHung, OnPepperPluginHung)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PepperStartsPlayback,
-                        OnPepperStartsPlayback)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PepperStopsPlayback,
-                        OnPepperStopsPlayback)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PluginCrashed, OnPluginCrashed)
-    IPC_MESSAGE_HANDLER(ViewHostMsg_RequestPpapiBrokerPermission,
-                        OnRequestPpapiBrokerPermission)
-    IPC_MESSAGE_HANDLER_GENERIC(BrowserPluginHostMsg_Attach,
-                                OnBrowserPluginMessage(render_frame_host,
-                                                       message))
-#endif
     IPC_MESSAGE_HANDLER(ViewHostMsg_UpdateFaviconURL, OnUpdateFaviconURL)
     IPC_MESSAGE_HANDLER(ViewHostMsg_ShowValidationMessage,
                         OnShowValidationMessage)
@@ -1582,11 +1551,6 @@ void WebContentsImpl::Init(const WebContents::CreateParams& params) {
 
   gfx::Size initial_size = params.initial_size;
   view_->CreateView(initial_size, params.context);
-
-#if defined(ENABLE_PLUGINS)
-  plugin_content_origin_whitelist_.reset(
-      new PluginContentOriginWhitelist(this));
-#endif
 
   registrar_.Add(this,
                  NOTIFICATION_RENDER_WIDGET_HOST_DESTROYED,
@@ -3692,73 +3656,6 @@ void WebContentsImpl::OnWebUISend(const GURL& source_url,
   if (delegate_)
     delegate_->WebUISend(this, source_url, name, args);
 }
-
-#if defined(ENABLE_PLUGINS)
-void WebContentsImpl::OnPepperInstanceCreated(int32_t pp_instance) {
-  FOR_EACH_OBSERVER(WebContentsObserver, observers_,
-                    PepperInstanceCreated());
-  pepper_playback_observer_->PepperInstanceCreated(pp_instance);
-}
-
-void WebContentsImpl::OnPepperInstanceDeleted(int32_t pp_instance) {
-  FOR_EACH_OBSERVER(WebContentsObserver, observers_,
-                    PepperInstanceDeleted());
-  pepper_playback_observer_->PepperInstanceDeleted(pp_instance);
-}
-
-void WebContentsImpl::OnPepperPluginHung(int plugin_child_id,
-                                         const base::FilePath& path,
-                                         bool is_hung) {
-  UMA_HISTOGRAM_COUNTS("Pepper.PluginHung", 1);
-
-  FOR_EACH_OBSERVER(WebContentsObserver, observers_,
-                    PluginHungStatusChanged(plugin_child_id, path, is_hung));
-}
-
-void WebContentsImpl::OnPepperStartsPlayback(int32_t pp_instance) {
-  pepper_playback_observer_->PepperStartsPlayback(pp_instance);
-}
-
-void WebContentsImpl::OnPepperStopsPlayback(int32_t pp_instance) {
-  pepper_playback_observer_->PepperStopsPlayback(pp_instance);
-}
-
-void WebContentsImpl::OnPluginCrashed(const base::FilePath& plugin_path,
-                                      base::ProcessId plugin_pid) {
-  FOR_EACH_OBSERVER(WebContentsObserver, observers_,
-                    PluginCrashed(plugin_path, plugin_pid));
-}
-
-void WebContentsImpl::OnRequestPpapiBrokerPermission(
-    int routing_id,
-    const GURL& url,
-    const base::FilePath& plugin_path) {
-  if (!delegate_) {
-    OnPpapiBrokerPermissionResult(routing_id, false);
-    return;
-  }
-
-  if (!delegate_->RequestPpapiBrokerPermission(
-      this, url, plugin_path,
-      base::Bind(&WebContentsImpl::OnPpapiBrokerPermissionResult,
-                 base::Unretained(this), routing_id))) {
-    NOTIMPLEMENTED();
-    OnPpapiBrokerPermissionResult(routing_id, false);
-  }
-}
-
-void WebContentsImpl::OnPpapiBrokerPermissionResult(int routing_id,
-                                                    bool result) {
-  Send(new ViewMsg_PpapiBrokerPermissionResult(routing_id, result));
-}
-
-void WebContentsImpl::OnBrowserPluginMessage(RenderFrameHost* render_frame_host,
-                                             const IPC::Message& message) {
-  CHECK(!browser_plugin_embedder_.get());
-  CreateBrowserPluginEmbedderIfNecessary();
-  browser_plugin_embedder_->OnMessageReceived(message, render_frame_host);
-}
-#endif  // defined(ENABLE_PLUGINS)
 
 void WebContentsImpl::OnUpdateFaviconURL(
     const std::vector<FaviconURL>& candidates) {

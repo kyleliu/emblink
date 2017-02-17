@@ -20,10 +20,6 @@
 #include "third_party/WebKit/public/web/WebView.h"
 #include "v8/include/v8.h"
 
-#if defined(ENABLE_PLUGINS)
-#include "ppapi/shared_impl/ppapi_switches.h"
-#endif
-
 #if defined(OS_ANDROID)
 #include "base/feature_list.h"
 #include "media/base/media_switches.h"
@@ -107,21 +103,11 @@ void ShellContentRendererClient::RenderViewCreated(RenderView* render_view) {
 
 bool ShellContentRendererClient::IsPluginAllowedToUseCompositorAPI(
     const GURL& url) {
-#if defined(ENABLE_PLUGINS)
-  return base::CommandLine::ForCurrentProcess()->HasSwitch(
-      switches::kEnablePepperTesting);
-#else
   return false;
-#endif
 }
 
 bool ShellContentRendererClient::IsPluginAllowedToUseDevChannelAPIs() {
-#if defined(ENABLE_PLUGINS)
-  return base::CommandLine::ForCurrentProcess()->HasSwitch(
-      switches::kEnablePepperTesting);
-#else
   return false;
-#endif
 }
 
 void ShellContentRendererClient::DidInitializeWorkerContextOnWorkerThread(

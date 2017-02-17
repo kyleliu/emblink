@@ -10,7 +10,6 @@
 
 #include "build/build_config.h"
 #include "content/common/text_input_client_messages.h"
-#include "content/renderer/pepper/pepper_plugin_instance_impl.h"
 #include "content/renderer/render_frame_impl.h"
 #include "content/renderer/render_view_impl.h"
 #include "content/renderer/render_widget.h"
@@ -78,17 +77,6 @@ blink::WebLocalFrame* TextInputClientObserver::GetFocusedFrame() const {
   return nullptr;
 }
 
-#if defined(ENABLE_PLUGINS)
-PepperPluginInstanceImpl* TextInputClientObserver::GetFocusedPepperPlugin()
-    const {
-  blink::WebLocalFrame* focusedFrame = GetFocusedFrame();
-  return focusedFrame
-             ? RenderFrameImpl::FromWebFrame(focusedFrame)
-                   ->focused_pepper_plugin()
-             : nullptr;
-}
-#endif
-
 void TextInputClientObserver::OnStringAtPoint(gfx::Point point) {
 #if defined(OS_MACOSX)
   blink::WebPoint baselinePoint;
@@ -120,12 +108,6 @@ void TextInputClientObserver::OnCharacterIndexForPoint(gfx::Point point) {
 
 void TextInputClientObserver::OnFirstRectForCharacterRange(gfx::Range range) {
   gfx::Rect rect;
-#if defined(ENABLE_PLUGINS)
-  PepperPluginInstanceImpl* focused_plugin = GetFocusedPepperPlugin();
-  if (focused_plugin) {
-    rect = focused_plugin->GetCaretBounds();
-  } else
-#endif
   {
     blink::WebLocalFrame* frame = GetFocusedFrame();
     // TODO(yabinh): Null check should not be necessary.

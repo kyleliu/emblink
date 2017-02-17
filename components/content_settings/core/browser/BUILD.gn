@@ -73,10 +73,6 @@ source_set("unit_tests") {
     "website_settings_registry_unittest.cc",
   ]
 
-  if (enable_plugins) {
-    sources += [ "content_settings_provider_unittest.cc" ]
-  }
-
   deps = [
     ":browser",
     "//base",

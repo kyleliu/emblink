@@ -41,19 +41,9 @@
 #include "third_party/khronos/GLES2/gl2ext.h"
 #endif
 
-#if defined(ENABLE_PLUGINS)
-#include "content/browser/plugin_service_impl.h"
-#include "content/browser/ppapi_plugin_process_host.h"
-#include "content/public/browser/plugin_service_filter.h"
-#endif
-
 namespace content {
 
 namespace {
-
-#if defined(ENABLE_PLUGINS)
-const int kPluginsRefreshThresholdInSeconds = 3;
-#endif
 
 const char kEnforceStrictSecureExperiment[] = "StrictSecureCookies";
 
@@ -129,82 +119,6 @@ class RenderMessageCompletionCallback {
 
 }  // namespace
 
-#if defined(ENABLE_PLUGINS)
-
-class RenderFrameMessageFilter::OpenChannelToPpapiBrokerCallback
-    : public PpapiPluginProcessHost::BrokerClient {
- public:
-  OpenChannelToPpapiBrokerCallback(RenderFrameMessageFilter* filter,
-                                   int routing_id)
-      : filter_(filter),
-        routing_id_(routing_id) {
-  }
-
-  ~OpenChannelToPpapiBrokerCallback() override {}
-
-  void GetPpapiChannelInfo(base::ProcessHandle* renderer_handle,
-                           int* renderer_id) override {
-    // base::kNullProcessHandle indicates that the channel will be used by the
-    // browser itself. Make sure we never output that value here.
-    CHECK_NE(base::kNullProcessHandle, filter_->PeerHandle());
-    *renderer_handle = filter_->PeerHandle();
-    *renderer_id = filter_->render_process_id_;
-  }
-
-  void OnPpapiChannelOpened(const IPC::ChannelHandle& channel_handle,
-                            base::ProcessId plugin_pid,
-                            int /* plugin_child_id */) override {
-    filter_->Send(new ViewMsg_PpapiBrokerChannelCreated(routing_id_,
-                                                        plugin_pid,
-                                                        channel_handle));
-    delete this;
-  }
-
-  bool Incognito() override { return filter_->incognito_; }
-
- private:
-  scoped_refptr<RenderFrameMessageFilter> filter_;
-  int routing_id_;
-};
-
-class RenderFrameMessageFilter::OpenChannelToPpapiPluginCallback
-    : public RenderMessageCompletionCallback,
-      public PpapiPluginProcessHost::PluginClient {
- public:
-  OpenChannelToPpapiPluginCallback(RenderFrameMessageFilter* filter,
-                                   ResourceContext* context,
-                                   IPC::Message* reply_msg)
-      : RenderMessageCompletionCallback(filter, reply_msg),
-        context_(context) {
-  }
-
-  void GetPpapiChannelInfo(base::ProcessHandle* renderer_handle,
-                           int* renderer_id) override {
-    // base::kNullProcessHandle indicates that the channel will be used by the
-    // browser itself. Make sure we never output that value here.
-    CHECK_NE(base::kNullProcessHandle, filter()->PeerHandle());
-    *renderer_handle = filter()->PeerHandle();
-    *renderer_id = filter()->render_process_id_;
-  }
-
-  void OnPpapiChannelOpened(const IPC::ChannelHandle& channel_handle,
-                            base::ProcessId plugin_pid,
-                            int plugin_child_id) override {
-    FrameHostMsg_OpenChannelToPepperPlugin::WriteReplyParams(
-        reply_msg(), channel_handle, plugin_pid, plugin_child_id);
-    SendReplyAndDeleteThis();
-  }
-
-  bool Incognito() override { return filter()->incognito_; }
-
-  ResourceContext* GetResourceContext() override { return context_; }
-
- private:
-  ResourceContext* context_;
-};
-
-#endif  // ENABLE_PLUGINS
-
 RenderFrameMessageFilter::RenderFrameMessageFilter(
     int render_process_id,
     PluginServiceImpl* plugin_service,
@@ -213,10 +127,6 @@ RenderFrameMessageFilter::RenderFrameMessageFilter(
     RenderWidgetHelper* render_widget_helper)
     : BrowserMessageFilter(FrameMsgStart),
       BrowserAssociatedInterface<mojom::RenderFrameMessageFilter>(this, this),
-#if defined(ENABLE_PLUGINS)
-      plugin_service_(plugin_service),
-      profile_data_directory_(browser_context->GetPath()),
-#endif  // ENABLE_PLUGINS
       request_context_(request_context),
       resource_context_(browser_context->GetResourceContext()),
       render_widget_helper_(render_widget_helper),
@@ -240,20 +150,6 @@ bool RenderFrameMessageFilter::OnMessageReceived(const IPC::Message& message) {
     IPC_MESSAGE_HANDLER(FrameHostMsg_Are3DAPIsBlocked, OnAre3DAPIsBlocked)
     IPC_MESSAGE_HANDLER_GENERIC(FrameHostMsg_RenderProcessGone,
                                 OnRenderProcessGone())
-#if defined(ENABLE_PLUGINS)
-    IPC_MESSAGE_HANDLER_DELAY_REPLY(FrameHostMsg_GetPlugins, OnGetPlugins)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_GetPluginInfo, OnGetPluginInfo)
-    IPC_MESSAGE_HANDLER_DELAY_REPLY(FrameHostMsg_OpenChannelToPepperPlugin,
-                                    OnOpenChannelToPepperPlugin)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_DidCreateOutOfProcessPepperInstance,
-                        OnDidCreateOutOfProcessPepperInstance)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_DidDeleteOutOfProcessPepperInstance,
-                        OnDidDeleteOutOfProcessPepperInstance)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_OpenChannelToPpapiBroker,
-                        OnOpenChannelToPpapiBroker)
-    IPC_MESSAGE_HANDLER(FrameHostMsg_PluginInstanceThrottleStateChange,
-                        OnPluginInstanceThrottleStateChange)
-#endif  // ENABLE_PLUGINS
     IPC_MESSAGE_UNHANDLED(handled = false)
   IPC_END_MESSAGE_MAP()
 
@@ -453,148 +349,6 @@ void RenderFrameMessageFilter::GetCookies(int render_frame_id,
       base::Bind(&RenderFrameMessageFilter::CheckPolicyForCookies, this,
                  render_frame_id, url, first_party_for_cookies, callback));
 }
-
-#if defined(ENABLE_PLUGINS)
-
-void RenderFrameMessageFilter::OnGetPlugins(
-    bool refresh,
-    const url::Origin& main_frame_origin,
-    IPC::Message* reply_msg) {
-  // Don't refresh if the specified threshold has not been passed.  Note that
-  // this check is performed before off-loading to the file thread.  The reason
-  // we do this is that some pages tend to request that the list of plugins be
-  // refreshed at an excessive rate.  This instigates disk scanning, as the list
-  // is accumulated by doing multiple reads from disk.  This effect is
-  // multiplied when we have several pages requesting this operation.
-  if (refresh) {
-    const base::TimeDelta threshold = base::TimeDelta::FromSeconds(
-        kPluginsRefreshThresholdInSeconds);
-    const base::TimeTicks now = base::TimeTicks::Now();
-    if (now - last_plugin_refresh_time_ >= threshold) {
-      // Only refresh if the threshold hasn't been exceeded yet.
-      PluginServiceImpl::GetInstance()->RefreshPlugins();
-      last_plugin_refresh_time_ = now;
-    }
-  }
-
-  PluginServiceImpl::GetInstance()->GetPlugins(
-      base::Bind(&RenderFrameMessageFilter::GetPluginsCallback, this, reply_msg,
-                 main_frame_origin));
-}
-
-void RenderFrameMessageFilter::GetPluginsCallback(
-    IPC::Message* reply_msg,
-    const url::Origin& main_frame_origin,
-    const std::vector<WebPluginInfo>& all_plugins) {
-  // Filter the plugin list.
-  PluginServiceFilter* filter = PluginServiceImpl::GetInstance()->GetFilter();
-  std::vector<WebPluginInfo> plugins;
-
-  int child_process_id = -1;
-  int routing_id = MSG_ROUTING_NONE;
-  // In this loop, copy the WebPluginInfo (and do not use a reference) because
-  // the filter might mutate it.
-  for (WebPluginInfo plugin : all_plugins) {
-    // TODO(crbug.com/621724): Pass an url::Origin instead of a GURL.
-    if (!filter ||
-        filter->IsPluginAvailable(child_process_id, routing_id,
-                                  resource_context_, main_frame_origin.GetURL(),
-                                  main_frame_origin, &plugin)) {
-      plugins.push_back(plugin);
-    }
-  }
-
-  FrameHostMsg_GetPlugins::WriteReplyParams(reply_msg, plugins);
-  Send(reply_msg);
-}
-
-void RenderFrameMessageFilter::OnGetPluginInfo(
-    int render_frame_id,
-    const GURL& url,
-    const url::Origin& main_frame_origin,
-    const std::string& mime_type,
-    bool* found,
-    WebPluginInfo* info,
-    std::string* actual_mime_type) {
-  bool allow_wildcard = true;
-  *found = plugin_service_->GetPluginInfo(
-      render_process_id_, render_frame_id, resource_context_, url,
-      main_frame_origin, mime_type, allow_wildcard, nullptr, info,
-      actual_mime_type);
-}
-
-void RenderFrameMessageFilter::OnOpenChannelToPepperPlugin(
-    const base::FilePath& path,
-    IPC::Message* reply_msg) {
-  plugin_service_->OpenChannelToPpapiPlugin(
-      render_process_id_,
-      path,
-      profile_data_directory_,
-      new OpenChannelToPpapiPluginCallback(this, resource_context_, reply_msg));
-}
-
-void RenderFrameMessageFilter::OnDidCreateOutOfProcessPepperInstance(
-    int plugin_child_id,
-    int32_t pp_instance,
-    PepperRendererInstanceData instance_data,
-    bool is_external) {
-  // It's important that we supply the render process ID ourselves based on the
-  // channel the message arrived on. We use the
-  //   PP_Instance -> (process id, frame id)
-  // mapping to decide how to handle messages received from the (untrusted)
-  // plugin, so an exploited renderer must not be able to insert fake mappings
-  // that may allow it access to other render processes.
-  DCHECK_EQ(0, instance_data.render_process_id);
-  instance_data.render_process_id = render_process_id_;
-  if (is_external) {
-    // We provide the BrowserPpapiHost to the embedder, so it's safe to cast.
-    BrowserPpapiHostImpl* host = static_cast<BrowserPpapiHostImpl*>(
-        GetContentClient()->browser()->GetExternalBrowserPpapiHost(
-            plugin_child_id));
-    if (host)
-      host->AddInstance(pp_instance, instance_data);
-  } else {
-    PpapiPluginProcessHost::DidCreateOutOfProcessInstance(
-        plugin_child_id, pp_instance, instance_data);
-  }
-}
-
-void RenderFrameMessageFilter::OnDidDeleteOutOfProcessPepperInstance(
-    int plugin_child_id,
-    int32_t pp_instance,
-    bool is_external) {
-  if (is_external) {
-    // We provide the BrowserPpapiHost to the embedder, so it's safe to cast.
-    BrowserPpapiHostImpl* host = static_cast<BrowserPpapiHostImpl*>(
-        GetContentClient()->browser()->GetExternalBrowserPpapiHost(
-            plugin_child_id));
-    if (host)
-      host->DeleteInstance(pp_instance);
-  } else {
-    PpapiPluginProcessHost::DidDeleteOutOfProcessInstance(
-        plugin_child_id, pp_instance);
-  }
-}
-
-void RenderFrameMessageFilter::OnOpenChannelToPpapiBroker(
-    int routing_id,
-    const base::FilePath& path) {
-  plugin_service_->OpenChannelToPpapiBroker(
-      render_process_id_,
-      path,
-      new OpenChannelToPpapiBrokerCallback(this, routing_id));
-}
-
-void RenderFrameMessageFilter::OnPluginInstanceThrottleStateChange(
-    int plugin_child_id,
-    int32_t pp_instance,
-    bool is_throttled) {
-  // Feature is only implemented for non-external Plugins.
-  PpapiPluginProcessHost::OnPluginInstanceThrottleStateChange(
-      plugin_child_id, pp_instance, is_throttled);
-}
-
-#endif  // ENABLE_PLUGINS
 
 net::URLRequestContext* RenderFrameMessageFilter::GetRequestContextForURL(
     const GURL& url) {

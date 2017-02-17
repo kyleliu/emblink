@@ -111,13 +111,6 @@
 
 namespace content {
 extern int GpuMain(const content::MainFunctionParams&);
-#if defined(ENABLE_PLUGINS)
-#if !defined(OS_LINUX)
-extern int PluginMain(const content::MainFunctionParams&);
-#endif
-extern int PpapiPluginMain(const MainFunctionParams&);
-extern int PpapiBrokerMain(const MainFunctionParams&);
-#endif
 extern int RendererMain(const content::MainFunctionParams&);
 extern int UtilityMain(const MainFunctionParams&);
 }  // namespace content
@@ -294,9 +287,6 @@ int RunZygote(const MainFunctionParams& main_function_params,
               ContentMainDelegate* delegate) {
   static const MainFunction kMainFunctions[] = {
     { switches::kRendererProcess,    RendererMain },
-#if defined(ENABLE_PLUGINS)
-    { switches::kPpapiPluginProcess, PpapiPluginMain },
-#endif
     { switches::kUtilityProcess,     UtilityMain },
   };
 
@@ -357,10 +347,6 @@ int RunNamedProcessTypeMain(
     ContentMainDelegate* delegate) {
   static const MainFunction kMainFunctions[] = {
     { "",                            BrowserMain },
-#if defined(ENABLE_PLUGINS)
-    { switches::kPpapiPluginProcess, PpapiPluginMain },
-    { switches::kPpapiBrokerProcess, PpapiBrokerMain },
-#endif  // ENABLE_PLUGINS
     { switches::kUtilityProcess,     UtilityMain },
     { switches::kRendererProcess,    RendererMain },
     { switches::kGpuProcess,         GpuMain },

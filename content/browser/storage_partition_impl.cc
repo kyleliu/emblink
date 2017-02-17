@@ -35,10 +35,6 @@
 #include "storage/browser/database/database_tracker.h"
 #include "storage/browser/quota/quota_manager.h"
 
-#if defined(ENABLE_PLUGINS)
-#include "content/browser/plugin_private_storage_helper.h"
-#endif  // defined(ENABLE_PLUGINS)
-
 namespace content {
 
 namespace {
@@ -833,16 +829,6 @@ void StoragePartitionImpl::DataDeletionHelper::ClearDataOnUIThread(
         base::Bind(&ClearShaderCacheOnIOThread,
                    path, begin, end, decrement_callback));
   }
-
-#if defined(ENABLE_PLUGINS)
-  if (remove_mask & REMOVE_DATA_MASK_PLUGIN_PRIVATE_DATA) {
-    IncrementTaskCountOnUI();
-    filesystem_context->default_file_task_runner()->PostTask(
-        FROM_HERE, base::Bind(&ClearPluginPrivateDataOnFileTaskRunner,
-                              make_scoped_refptr(filesystem_context),
-                              storage_origin, begin, end, decrement_callback));
-  }
-#endif  // defined(ENABLE_PLUGINS)
 
   DecrementTaskCountOnUI();
 }

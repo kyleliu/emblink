@@ -61,10 +61,6 @@
 #include "ui/gfx/range/range.h"
 #include "url/gurl.h"
 
-#if defined(ENABLE_PLUGINS)
-#include "content/renderer/pepper/plugin_power_saver_helper.h"
-#endif
-
 #if defined(ENABLE_MOJO_MEDIA)
 #include "media/mojo/interfaces/service_factory.mojom.h"  // nogncheck
 #endif
@@ -314,71 +310,6 @@ class CONTENT_EXPORT RenderFrameImpl
   // Called when the widget receives a mouse event.
   void RenderWidgetWillHandleMouseEvent();
 
-#if defined(ENABLE_PLUGINS)
-  // Get/set the plugin which will be used to handle document find requests.
-  void set_plugin_find_handler(PepperPluginInstanceImpl* plugin) {
-    plugin_find_handler_ = plugin;
-  }
-  PepperPluginInstanceImpl* plugin_find_handler() {
-    return plugin_find_handler_;
-  }
-
-  // Notification that a PPAPI plugin has been created.
-  void PepperPluginCreated(RendererPpapiHost* host);
-
-  // Notifies that |instance| has changed the cursor.
-  // This will update the cursor appearance if it is currently over the plugin
-  // instance.
-  void PepperDidChangeCursor(PepperPluginInstanceImpl* instance,
-                             const blink::WebCursorInfo& cursor);
-
-  // Notifies that |instance| has received a mouse event.
-  void PepperDidReceiveMouseEvent(PepperPluginInstanceImpl* instance);
-
-  // Informs the render view that a PPAPI plugin has changed text input status.
-  void PepperTextInputTypeChanged(PepperPluginInstanceImpl* instance);
-  void PepperCaretPositionChanged(PepperPluginInstanceImpl* instance);
-
-  // Cancels current composition.
-  void PepperCancelComposition(PepperPluginInstanceImpl* instance);
-
-  // Informs the render view that a PPAPI plugin has changed selection.
-  void PepperSelectionChanged(PepperPluginInstanceImpl* instance);
-
-  // Creates a fullscreen container for a pepper plugin instance.
-  RenderWidgetFullscreenPepper* CreatePepperFullscreenContainer(
-      PepperPluginInstanceImpl* plugin);
-
-  bool IsPepperAcceptingCompositionEvents() const;
-
-  // Notification that the given plugin has crashed.
-  void PluginCrashed(const base::FilePath& plugin_path,
-                     base::ProcessId plugin_pid);
-
-  // Simulates IME events for testing purpose.
-  void SimulateImeSetComposition(
-      const base::string16& text,
-      const std::vector<blink::WebCompositionUnderline>& underlines,
-      int selection_start,
-      int selection_end);
-  void SimulateImeCommitText(const base::string16& text,
-                             const gfx::Range& replacement_range);
-  void SimulateImeFinishComposingText(bool keep_selection);
-
-  // TODO(jam): remove these once the IPC handler moves from RenderView to
-  // RenderFrame.
-  void OnImeSetComposition(
-      const base::string16& text,
-      const std::vector<blink::WebCompositionUnderline>& underlines,
-      int selection_start,
-      int selection_end);
-  void OnImeCommitText(const base::string16& text,
-                       const gfx::Range& replacement_range,
-                       int relative_cursor_pos);
-  void OnImeFinishComposingText(bool keep_selection);
-
-#endif  // defined(ENABLE_PLUGINS)
-
   // May return NULL in some cases, especially if userMediaClient() returns
   // NULL.
   MediaStreamDispatcher* GetMediaStreamDispatcher();
@@ -419,19 +350,6 @@ class CONTENT_EXPORT RenderFrameImpl
   shell::InterfaceProvider* GetRemoteInterfaces() override;
   AssociatedInterfaceRegistry* GetAssociatedInterfaceRegistry() override;
   AssociatedInterfaceProvider* GetRemoteAssociatedInterfaces() override;
-#if defined(ENABLE_PLUGINS)
-  void RegisterPeripheralPlugin(
-      const url::Origin& content_origin,
-      const base::Closure& unthrottle_callback) override;
-  RenderFrame::PeripheralContentStatus GetPeripheralContentStatus(
-      const url::Origin& main_frame_origin,
-      const url::Origin& content_origin,
-      const gfx::Size& unobscured_size,
-      RecordPeripheralDecision record_decision) const override;
-  void WhitelistContentOrigin(const url::Origin& content_origin) override;
-  void DidStartLoading() override;
-  void DidStopLoading() override;
-#endif
   bool IsFTPDirectoryListing() override;
   void AttachGuest(int element_instance_id) override;
   void DetachGuest(int element_instance_id) override;
@@ -669,35 +587,6 @@ class CONTENT_EXPORT RenderFrameImpl
   // process; for layout tests, this allows the test to mock out services at
   // the Mojo IPC layer.
   void MaybeEnableMojoBindings();
-
-  // Plugin-related functions --------------------------------------------------
-
-#if defined(ENABLE_PLUGINS)
-  PepperPluginInstanceImpl* focused_pepper_plugin() {
-    return focused_pepper_plugin_;
-  }
-  PepperPluginInstanceImpl* pepper_last_mouse_event_target() {
-    return pepper_last_mouse_event_target_;
-  }
-  void set_pepper_last_mouse_event_target(PepperPluginInstanceImpl* plugin) {
-    pepper_last_mouse_event_target_ = plugin;
-  }
-
-  // Indicates that the given instance has been created.
-  void PepperInstanceCreated(PepperPluginInstanceImpl* instance);
-
-  // Indicates that the given instance is being destroyed. This is called from
-  // the destructor, so it's important that the instance is not dereferenced
-  // from this call.
-  void PepperInstanceDeleted(PepperPluginInstanceImpl* instance);
-
-  // Notification that the given plugin is focused or unfocused.
-  void PepperFocusChanged(PepperPluginInstanceImpl* instance, bool focused);
-
-  void PepperStartsPlayback(PepperPluginInstanceImpl* instance);
-  void PepperStopsPlayback(PepperPluginInstanceImpl* instance);
-  void OnSetPepperVolume(int32_t pp_instance, double volume);
-#endif  // ENABLE_PLUGINS
 
  protected:
   explicit RenderFrameImpl(const CreateParams& params);
@@ -1106,16 +995,6 @@ class CONTENT_EXPORT RenderFrameImpl
   // be reported to the browser process via SendUpdateState.
   blink::WebHistoryItem current_history_item_;
 
-#if defined(ENABLE_PLUGINS)
-  // Current text input composition text. Empty if no composition is in
-  // progress.
-  base::string16 pepper_composition_text_;
-
-  PluginPowerSaverHelper* plugin_power_saver_helper_;
-
-  PepperPluginInstanceImpl* plugin_find_handler_;
-#endif
-
   RendererWebCookieJarImpl cookie_jar_;
 
   // All the registered observers.
@@ -1253,21 +1132,6 @@ class CONTENT_EXPORT RenderFrameImpl
 #endif
 
   std::unique_ptr<FrameBlameContext> blame_context_;
-
-  // Plugins -------------------------------------------------------------------
-#if defined(ENABLE_PLUGINS)
-  typedef std::set<PepperPluginInstanceImpl*> PepperPluginSet;
-  PepperPluginSet active_pepper_instances_;
-
-  // Whether or not the focus is on a PPAPI plugin
-  PepperPluginInstanceImpl* focused_pepper_plugin_;
-
-  // The plugin instance that received the last mouse event. It is set to NULL
-  // if the last mouse event went to elements other than Pepper plugins.
-  // |pepper_last_mouse_event_target_| is not owned by this class. We depend on
-  // the RenderFrameImpl to NULL it out when it destructs.
-  PepperPluginInstanceImpl* pepper_last_mouse_event_target_;
-#endif
 
   mojo::Binding<mojom::Frame> frame_binding_;
   mojom::FrameHostPtr frame_host_;

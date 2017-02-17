@@ -579,25 +579,6 @@ IPC_MESSAGE_CONTROL2(ViewMsg_NetworkConnectionChanged,
 // for tests.
 IPC_MESSAGE_ROUTED1(ViewMsg_WaitForNextFrameForTests, int /* routing_id */)
 
-#if defined(ENABLE_PLUGINS)
-// Reply to ViewHostMsg_OpenChannelToPpapiBroker
-// Tells the renderer that the channel to the broker has been created.
-IPC_MESSAGE_ROUTED2(ViewMsg_PpapiBrokerChannelCreated,
-                    base::ProcessId /* broker_pid */,
-                    IPC::ChannelHandle /* handle */)
-
-// Reply to ViewHostMsg_RequestPpapiBrokerPermission.
-// Tells the renderer whether permission to access to PPAPI broker was granted
-// or not.
-IPC_MESSAGE_ROUTED1(ViewMsg_PpapiBrokerPermissionResult,
-                    bool /* result */)
-
-// Tells the renderer to empty its plugin list cache, optional reloading
-// pages containing plugins.
-IPC_MESSAGE_CONTROL1(ViewMsg_PurgePluginListCache,
-                     bool /* reload_pages */)
-#endif
-
 // An acknowledge to ViewHostMsg_MultipleTargetsTouched to notify the renderer
 // process to release the magnified image.
 IPC_MESSAGE_ROUTED1(ViewMsg_ReleaseDisambiguationPopupBitmap,
@@ -828,17 +809,6 @@ IPC_MESSAGE_ROUTED3(ViewHostMsg_WebUISend,
                     GURL /* source_url */,
                     std::string  /* message */,
                     base::ListValue /* args */)
-
-#if defined(ENABLE_PLUGINS)
-// A renderer sends this to the browser process when it wants to access a PPAPI
-// broker. In contrast to FrameHostMsg_OpenChannelToPpapiBroker, this is called
-// for every connection.
-// The browser will respond with ViewMsg_PpapiBrokerPermissionResult.
-IPC_MESSAGE_ROUTED3(ViewHostMsg_RequestPpapiBrokerPermission,
-                    int /* routing_id */,
-                    GURL /* document_url */,
-                    base::FilePath /* plugin_path */)
-#endif  // defined(ENABLE_PLUGINS)
 
 // Send the tooltip text for the current mouse position to the browser.
 IPC_MESSAGE_ROUTED2(ViewHostMsg_SetTooltipText,

@@ -128,12 +128,6 @@ bool ShellMainDelegate::BasicStartupComplete(int* exit_code) {
   InitLogging();
 
   {
-#if defined(ENABLE_PLUGINS)
-    if (!ppapi::RegisterBlinkTestPlugin(&command_line)) {
-      *exit_code = 1;
-      return true;
-    }
-  #endif
     command_line.AppendSwitch(cc::switches::kEnableGpuBenchmarking);
     command_line.AppendSwitch(switches::kProcessPerTab);
     command_line.AppendSwitch(switches::kEnableLogging);

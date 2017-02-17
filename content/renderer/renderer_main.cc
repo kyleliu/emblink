@@ -44,10 +44,6 @@
 #include "third_party/WebKit/public/web/WebView.h"
 #endif  // OS_MACOSX
 
-#if defined(ENABLE_PLUGINS)
-#include "content/renderer/pepper/pepper_plugin_registry.h"
-#endif
-
 #if defined(ENABLE_WEBRTC)
 #include "third_party/webrtc_overrides/init_webrtc.h"
 #endif
@@ -149,10 +145,6 @@ int RendererMain(const MainFunctionParams& parameters) {
   // PlatformInitialize uses FieldTrials, so this must happen later.
   platform.PlatformInitialize();
 
-#if defined(ENABLE_PLUGINS)
-  // Load pepper plugins before engaging the sandbox.
-  PepperPluginRegistry::GetInstance();
-#endif
 #if defined(ENABLE_WEBRTC)
   // Initialize WebRTC before engaging the sandbox.
   // NOTE: On linux, this call could already have been made from

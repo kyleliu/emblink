@@ -18,7 +18,6 @@ target(link_target_type, "child") {
   visibility = [
     ":*",
     "//content/gpu/*",
-    "//content/ppapi_plugin/*",
     "//content/public/child:child_sources",
     "//content/renderer/*",
     "//content/utility/*",
@@ -53,8 +52,6 @@ target(link_target_type, "child") {
     "blob_storage/blob_transport_controller.h",
     "blob_storage/webblobregistry_impl.cc",
     "blob_storage/webblobregistry_impl.h",
-    "browser_font_resource_trusted.cc",
-    "browser_font_resource_trusted.h",
     "child_discardable_shared_memory_manager.cc",
     "child_discardable_shared_memory_manager.h",
     "child_gpu_memory_buffer_manager.cc",
@@ -268,18 +265,6 @@ target(link_target_type, "child") {
 
   if (is_win) {
     libs = [ "dwrite.lib" ]
-  }
-
-  if (enable_plugins) {
-    deps += [
-      "//ppapi/proxy",
-      "//ppapi/shared_impl",
-    ]
-  } else {
-    sources -= [
-      "browser_font_resource_trusted.cc",
-      "browser_font_resource_trusted.h",
-    ]
   }
 
   configs += [

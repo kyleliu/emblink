@@ -79,7 +79,6 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/global_request_id.h"
 #include "content/public/browser/navigation_ui_data.h"
-#include "content/public/browser/plugin_service.h"
 #include "content/public/browser/resource_dispatcher_host_delegate.h"
 #include "content/public/browser/resource_request_details.h"
 #include "content/public/browser/resource_throttle.h"
@@ -1687,17 +1686,12 @@ ResourceDispatcherHostImpl::AddStandardHandlers(
   handler.reset(new ThrottlingResourceHandler(
       std::move(handler), request, std::move(post_mime_sniffing_throttles)));
 
-  PluginService* plugin_service = nullptr;
-#if defined(ENABLE_PLUGINS)
-  plugin_service = PluginService::GetInstance();
-#endif
-
   // Insert a buffered event handler to sniff the mime type.
   // Note: all ResourceHandler following the MimeSniffingResourceHandler
   // should expect OnWillRead to be called *before* OnResponseStarted as
   // part of the mime sniffing process.
   handler.reset(new MimeSniffingResourceHandler(
-      std::move(handler), this, plugin_service, intercepting_handler, request,
+      std::move(handler), this, nullptr, intercepting_handler, request,
       fetch_request_context_type));
 
   // Add the pre mime sniffing throttles.

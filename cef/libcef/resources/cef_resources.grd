@@ -12,14 +12,6 @@
       <include name="IDR_CEF_DEVTOOLS_DISCOVERY_PAGE" file="devtools_discovery_page.html" type="BINDATA" />
       <include name="IDR_CEF_LICENSE_TXT" file="..\..\LICENSE.txt" type="BINDATA" />
       <include name="IDR_CEF_VERSION_HTML" file="about_version.html" type="BINDATA" />
-
-      <if expr="is_android">
-        <include name="IDR_MOBILE_YOUTUBE_PLUGIN_HTML" file="plugins/mobile_youtube_plugin.html" flattenhtml="true" type="BINDATA" />
-      </if>
-      <include name="IDR_BLOCKED_PLUGIN_HTML" file="plugins/blocked_plugin.html" flattenhtml="true" type="BINDATA" />
-      <include name="IDR_DISABLED_PLUGIN_HTML" file="plugins/disabled_plugin.html" flattenhtml="true" type="BINDATA" />
-      <include name="IDR_PREFER_HTML_PLUGIN_HTML" file="plugins/prefer_html_plugin.html" flattenhtml="true" type="BINDATA" />
-      <include name="IDR_PLUGIN_POSTER_HTML" file="plugins/plugin_poster.html" flattenhtml="true" type="BINDATA" />
     </includes>
   </release>
 </grit>

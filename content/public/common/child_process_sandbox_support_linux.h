@@ -10,7 +10,6 @@
 #include <string>
 
 #include "content/common/content_export.h"
-#include "ppapi/c/trusted/ppb_browser_font_trusted.h"
 
 namespace content {
 

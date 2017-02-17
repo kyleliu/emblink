@@ -72,7 +72,6 @@ target(link_target_type, "renderer_sources") {
     "//media",
     "//media/gpu/ipc/client",
     "//net",
-    "//ppapi/c",
     "//skia",
     "//third_party/WebKit/public:blink_headers",
     # "//third_party/libjingle",
@@ -108,9 +107,5 @@ target(link_target_type, "renderer_sources") {
       "//content/public/common:features",
       "//third_party/webrtc",
     ]
-  }
-
-  if (enable_plugins) {
-    sources += [ "plugin_instance_throttler.h" ]
   }
 }

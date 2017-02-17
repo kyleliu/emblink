@@ -15,7 +15,6 @@
 #include "base/logging.h"
 #include "base/strings/stringprintf.h"
 #include "components/prefs/pref_service.h"
-#include "content/public/browser/plugin_service.h"
 #include "content/public/browser/ssl_host_state_delegate.h"
 #include "net/http/http_cache.h"
 #include "net/http/http_transaction_factory.h"
@@ -631,8 +630,6 @@ void CefRequestContextImpl::PurgePluginListCacheInternal(
     scoped_refptr<CefBrowserContext> browser_context) {
   CEF_REQUIRE_UIT();
   browser_context->OnPurgePluginListCache();
-  content::PluginService::GetInstance()->PurgePluginListCache(
-      browser_context.get(), false);
 }
 
 void CefRequestContextImpl::ClearCertificateExceptionsInternal(

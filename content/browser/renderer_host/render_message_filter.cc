@@ -35,7 +35,6 @@
 #include "content/browser/gpu/gpu_process_host.h"
 #include "content/browser/loader/resource_dispatcher_host_impl.h"
 #include "content/browser/media/media_internals.h"
-#include "content/browser/renderer_host/pepper/pepper_security_helper.h"
 #include "content/browser/renderer_host/render_process_host_impl.h"
 #include "content/browser/renderer_host/render_view_host_delegate.h"
 #include "content/browser/renderer_host/render_widget_helper.h"
@@ -68,7 +67,6 @@
 #include "net/http/http_cache.h"
 #include "net/url_request/url_request_context.h"
 #include "net/url_request/url_request_context_getter.h"
-#include "ppapi/shared_impl/file_type_conversion.h"
 #include "url/gurl.h"
 
 #if defined(OS_MACOSX)

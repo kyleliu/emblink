@@ -166,46 +166,6 @@ class CONTENT_EXPORT RenderFrame : public IPC::Listener,
   // RenderFrameHost.
   virtual AssociatedInterfaceProvider* GetRemoteAssociatedInterfaces() = 0;
 
-#if defined(ENABLE_PLUGINS)
-  // Registers a plugin that has been marked peripheral. If the origin
-  // whitelist is later updated and includes |content_origin|, then
-  // |unthrottle_callback| will be called.
-  virtual void RegisterPeripheralPlugin(
-      const url::Origin& content_origin,
-      const base::Closure& unthrottle_callback) = 0;
-
-  // Returns the peripheral content heuristic decision.
-  //
-  // Power Saver is enabled for plugin content that are cross-origin and
-  // heuristically determined to be not essential to the web page content.
-  //
-  // Plugin content is defined to be cross-origin when the plugin source's
-  // origin differs from the top level frame's origin. For example:
-  //  - Cross-origin:  a.com -> b.com/plugin.swf
-  //  - Cross-origin:  a.com -> b.com/iframe.html -> b.com/plugin.swf
-  //  - Same-origin:   a.com -> b.com/iframe-to-a.html -> a.com/plugin.swf
-  //
-  // |main_frame_origin| is the origin of the main frame.
-  //
-  // |content_origin| is the origin of the plugin content.
-  //
-  // |unobscured_size| are zoom and device scale independent logical pixels.
-  virtual PeripheralContentStatus GetPeripheralContentStatus(
-      const url::Origin& main_frame_origin,
-      const url::Origin& content_origin,
-      const gfx::Size& unobscured_size,
-      RecordPeripheralDecision record_decision) const = 0;
-
-  // Whitelists a |content_origin| so its content will never be throttled in
-  // this RenderFrame. Whitelist is cleared by top level navigation.
-  virtual void WhitelistContentOrigin(const url::Origin& content_origin) = 0;
-
-  // Used by plugins that load data in this RenderFrame to update the loading
-  // notifications.
-  virtual void DidStartLoading() = 0;
-  virtual void DidStopLoading() = 0;
-#endif
-
   // Returns true if this frame is a FTP directory listing.
   virtual bool IsFTPDirectoryListing() = 0;
 

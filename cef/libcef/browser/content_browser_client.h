@@ -112,7 +112,6 @@ class CefContentBrowserClient : public content::ContentBrowserClient {
  private:
   CefBrowserMainParts* browser_main_parts_;
 
-  std::unique_ptr<content::PluginServiceFilter> plugin_service_filter_;
   std::unique_ptr<CefResourceDispatcherHostDelegate>
       resource_dispatcher_host_delegate_;
 };

@@ -66,11 +66,6 @@ if (!is_nacl_nonsfi) {
     "//content/public/renderer:renderer_sources",
     "//content/public/utility:utility_sources",
   ]
-
-  if (enable_plugins) {
-    content_shared_components +=
-        [ "//content/ppapi_plugin:ppapi_plugin_sources" ]
-  }
 }
 
 if (is_component_build) {

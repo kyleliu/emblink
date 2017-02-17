@@ -91,7 +91,6 @@
 #include "content/renderer/render_frame_proxy.h"
 #include "content/renderer/render_process.h"
 #include "content/renderer/render_thread_impl.h"
-#include "content/renderer/render_widget_fullscreen_pepper.h"
 #include "content/renderer/renderer_webapplicationcachehost_impl.h"
 #include "content/renderer/resizing_mode_selector.h"
 #include "content/renderer/savable_resources.h"
@@ -178,11 +177,6 @@
 #include "ui/gfx/geometry/rect_f.h"
 #elif defined(OS_MACOSX)
 #include "skia/ext/skia_utils_mac.h"
-#endif
-
-#if defined(ENABLE_PLUGINS)
-#include "content/renderer/pepper/pepper_plugin_instance_impl.h"
-#include "content/renderer/pepper/pepper_plugin_registry.h"
 #endif
 
 #if defined(ENABLE_WEBRTC)
@@ -1183,35 +1177,6 @@ void RenderViewImpl::RemoveObserver(RenderViewObserver* observer) {
 blink::WebView* RenderViewImpl::webview() const {
   return webview_;
 }
-
-#if defined(ENABLE_PLUGINS)
-
-#if defined(OS_MACOSX)
-void RenderViewImpl::OnGetRenderedText() {
-  if (!webview())
-    return;
-
-  if (!webview()->mainFrame()->isWebLocalFrame())
-    return;
-
-  // Get rendered text from WebLocalFrame.
-  // TODO: Currently IPC truncates any data that has a
-  // size > kMaximumMessageSize. May be split the text into smaller chunks and
-  // send back using multiple IPC. See http://crbug.com/393444.
-  static const size_t kMaximumMessageSize = 8 * 1024 * 1024;
-  // TODO(dglazkov): Using this API is wrong. It's not OOPIF-compatible and
-  // sends text in the wrong order. See http://crbug.com/584798.
-  // TODO(dglazkov): WebFrameContentDumper should only be used for
-  // testing purposes. See http://crbug.com/585164.
-  std::string text =
-      WebFrameContentDumper::dumpWebViewAsText(webview(), kMaximumMessageSize)
-          .utf8();
-
-  Send(new ViewMsg_GetRenderedTextCompleted(GetRoutingID(), text));
-}
-#endif  // defined(OS_MACOSX)
-
-#endif  // ENABLE_PLUGINS
 
 void RenderViewImpl::TransferActiveWheelFlingAnimation(
     const blink::WebActiveWheelFlingParameters& params) {

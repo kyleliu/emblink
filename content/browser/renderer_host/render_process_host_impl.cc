@@ -104,8 +104,6 @@
 #include "content/browser/renderer_host/media/video_capture_host.h"
 #include "content/browser/renderer_host/offscreen_canvas_compositor_frame_sink_provider_impl.h"
 #include "content/browser/renderer_host/offscreen_canvas_surface_impl.h"
-#include "content/browser/renderer_host/pepper/pepper_message_filter.h"
-#include "content/browser/renderer_host/pepper/pepper_renderer_connection.h"
 #include "content/browser/renderer_host/render_message_filter.h"
 #include "content/browser/renderer_host/render_view_host_delegate.h"
 #include "content/browser/renderer_host/render_view_host_impl.h"
@@ -176,7 +174,6 @@
 #include "mojo/edk/embedder/embedder.h"
 #include "mojo/public/cpp/bindings/associated_interface_ptr.h"
 #include "net/url_request/url_request_context_getter.h"
-#include "ppapi/shared_impl/ppapi_switches.h"
 #include "services/shell/public/cpp/connection.h"
 #include "services/shell/public/cpp/interface_provider.h"
 #include "services/shell/public/cpp/interface_registry.h"
@@ -214,10 +211,6 @@
 
 #if defined(USE_OZONE)
 #include "ui/ozone/public/ozone_switches.h"
-#endif
-
-#if defined(ENABLE_PLUGINS)
-#include "content/browser/plugin_service_impl.h"
 #endif
 
 #if defined(ENABLE_WEBRTC)
@@ -1021,11 +1014,7 @@ void RenderProcessHostImpl::CreateMessageFilters() {
 
   render_frame_message_filter_ = new RenderFrameMessageFilter(
       GetID(),
-#if defined(ENABLE_PLUGINS)
-      PluginServiceImpl::GetInstance(),
-#else
       nullptr,
-#endif
       GetBrowserContext(),
       request_context.get(),
       widget_helper_.get());
@@ -1092,9 +1081,6 @@ void RenderProcessHostImpl::CreateMessageFilters() {
       GetID(), browser_context->GetResourceContext()->GetMediaDeviceIDSalt(),
       media_stream_manager));
   AddFilter(new MediaStreamTrackMetricsHost());
-#endif
-#if defined(ENABLE_PLUGINS)
-  AddFilter(new PepperRendererConnection(GetID()));
 #endif
   AddFilter(new SpeechRecognitionDispatcherHost(
       GetID(), storage_partition_impl_->GetURLRequestContext()));
@@ -1755,9 +1741,6 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
     cc::switches::kTopControlsHideThreshold,
     cc::switches::kTopControlsShowThreshold,
 
-#if defined(ENABLE_PLUGINS)
-    switches::kEnablePepperTesting,
-#endif
 #if defined(ENABLE_WEBRTC)
     switches::kDisableWebRtcHWDecoding,
     switches::kDisableWebRtcHWEncoding,

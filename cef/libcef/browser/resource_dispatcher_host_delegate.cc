@@ -17,8 +17,6 @@
 #include "base/guid.h"
 #include "base/memory/scoped_vector.h"
 #include "build/build_config.h"
-#include "content/public/browser/plugin_service.h"
-#include "content/public/browser/plugin_service_filter.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/resource_request_info.h"
 #include "content/public/browser/stream_info.h"

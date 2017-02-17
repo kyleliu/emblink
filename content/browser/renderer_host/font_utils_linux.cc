@@ -12,8 +12,6 @@
 #include <string>
 
 #include "base/posix/eintr_wrapper.h"
-#include "ppapi/c/private/pp_private_font_charset.h"
-#include "ppapi/c/trusted/ppb_browser_font_trusted.h"
 
 namespace {
 

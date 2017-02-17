@@ -185,14 +185,6 @@ static_library("content_shell_lib") {
     "//v8",
   ]
 
-  if (enable_plugins) {
-    deps += [
-      "//content/ppapi_plugin",
-      "//ppapi:blink_deprecated_test_plugin",
-      "//ppapi:blink_test_plugin",
-      "//ppapi/shared_impl",
-    ]
-  }
   if (mojo_media_host == "browser") {
     deps += [ "//media/mojo/services" ]
   }
@@ -271,13 +263,6 @@ static_library("content_shell_lib") {
 
   if (is_linux) {
     deps += [ "//third_party/freetype2" ]
-  }
-
-  if (!enable_plugins) {
-    sources -= [
-      "browser/shell_plugin_service_filter.cc",
-      "browser/shell_plugin_service_filter.h",
-    ]
   }
 }
 
@@ -502,24 +487,6 @@ if (is_mac) {
     ]
   }
 
-  if (enable_plugins) {
-    bundle_data("content_shell_framework_plugins") {
-      sources = [
-        "$root_out_dir/blink_deprecated_test_plugin.plugin",
-        "$root_out_dir/blink_test_plugin.plugin",
-      ]
-
-      outputs = [
-        "{{bundle_root_dir}}/{{source_file_part}}",
-      ]
-
-      public_deps = [
-        "//ppapi:blink_deprecated_test_plugin",
-        "//ppapi:blink_test_plugin",
-      ]
-    }
-  }
-
   content_shell_framework_name = "$content_shell_product_name Framework"
   content_shell_helper_name = "$content_shell_product_name Helper"
 
@@ -559,10 +526,6 @@ if (is_mac) {
       ":content_shell_framework_xibs",
       "//third_party/icu:icudata",
     ]
-
-    if (enable_plugins) {
-      deps += [ ":content_shell_framework_plugins" ]
-    }
 
     # Both the main :content_shell and :content_shell_helper_app executables
     # need to link the framework. Because they are at different directory

@@ -96,10 +96,6 @@ namespace mojom {
 class CreateNewWindowParams;
 }
 
-#if defined(ENABLE_PLUGINS)
-class PepperPlaybackObserver;
-#endif
-
 // Factory function for the implementations that content knows about. Takes
 // ownership of |delegate|.
 WebContentsView* CreateWebContentsView(
@@ -957,27 +953,6 @@ class CONTENT_EXPORT WebContentsImpl
                    const std::string& name,
                    const base::ListValue& args);
   void OnUpdatePageImportanceSignals(const PageImportanceSignals& signals);
-#if defined(ENABLE_PLUGINS)
-  void OnPepperInstanceCreated(int32_t pp_instance);
-  void OnPepperInstanceDeleted(int32_t pp_instance);
-  void OnPepperPluginHung(int plugin_child_id,
-                          const base::FilePath& path,
-                          bool is_hung);
-  void OnPepperStartsPlayback(int32_t pp_instance);
-  void OnPepperStopsPlayback(int32_t pp_instance);
-  void OnPluginCrashed(const base::FilePath& plugin_path,
-                       base::ProcessId plugin_pid);
-  void OnRequestPpapiBrokerPermission(int routing_id,
-                                      const GURL& url,
-                                      const base::FilePath& plugin_path);
-
-  // Callback function when requesting permission to access the PPAPI broker.
-  // |result| is true if permission was granted.
-  void OnPpapiBrokerPermissionResult(int routing_id, bool result);
-
-  void OnBrowserPluginMessage(RenderFrameHost* render_frame_host,
-                              const IPC::Message& message);
-#endif  // defined(ENABLE_PLUGINS)
   void OnUpdateFaviconURL(const std::vector<FaviconURL>& candidates);
   void OnFirstVisuallyNonEmptyPaint();
   void OnShowValidationMessage(const gfx::Rect& anchor_in_root_view,
@@ -1323,12 +1298,6 @@ class CONTENT_EXPORT WebContentsImpl
   // NULL otherwise.
   std::unique_ptr<BrowserPluginGuest> browser_plugin_guest_;
 
-#if defined(ENABLE_PLUGINS)
-  // Manages the whitelist of plugin content origins exempt from power saving.
-  std::unique_ptr<PluginContentOriginWhitelist>
-      plugin_content_origin_whitelist_;
-#endif
-
   // This must be at the end, or else we might get notifications and use other
   // member variables that are gone.
   NotificationRegistrar registrar_;
@@ -1399,11 +1368,6 @@ class CONTENT_EXPORT WebContentsImpl
 
   // Manages media players, CDMs, and power save blockers for media.
   std::unique_ptr<MediaWebContentsObserver> media_web_contents_observer_;
-
-#if defined(ENABLE_PLUGINS)
-  // Observes pepper playback changes, and notifies MediaSession.
-  std::unique_ptr<PepperPlaybackObserver> pepper_playback_observer_;
-#endif  // defined(ENABLE_PLUGINS)
 
   std::unique_ptr<RenderWidgetHostInputEventRouter> rwh_input_event_router_;
 

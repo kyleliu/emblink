@@ -393,13 +393,6 @@ class CONTENT_EXPORT RenderWidget
     return mouse_lock_dispatcher_.get();
   }
 
-  // TODO(ekaramad): The reference to the focused pepper plugin will be removed
-  // from RenderWidget. The purpose of having the reference here was to make IME
-  // work for OOPIF (https://crbug.com/643727).
-  void set_focused_pepper_plugin(PepperPluginInstanceImpl* plugin) {
-    focused_pepper_plugin_ = plugin;
-  }
-
   // When emulated, this returns original device scale factor.
   float GetOriginalDeviceScaleFactor() const;
 
@@ -822,10 +815,6 @@ class CONTENT_EXPORT RenderWidget
   // position or range as well as finding character index at a given position.
   std::unique_ptr<TextInputClientObserver> text_input_client_observer_;
 #endif
-
-  // This reference is set by the RenderFrame and is used to query the IME-
-  // related state from the plugin to later send to the browser.
-  PepperPluginInstanceImpl* focused_pepper_plugin_;
 
   // Stores edit commands associated to the next key event.
   // Will be cleared as soon as the next key event is processed.

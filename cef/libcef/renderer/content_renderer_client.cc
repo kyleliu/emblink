@@ -23,9 +23,6 @@
 #include "libcef/common/values_impl.h"
 #include "libcef/renderer/browser_impl.h"
 #include "libcef/renderer/media/cef_key_systems.h"
-#include "libcef/renderer/pepper/pepper_helper.h"
-#include "libcef/renderer/plugins/cef_plugin_placeholder.h"
-#include "libcef/renderer/plugins/plugin_preroller.h"
 #include "libcef/renderer/render_frame_observer.h"
 #include "libcef/renderer/render_message_filter.h"
 #include "libcef/renderer/render_thread_observer.h"
@@ -81,6 +78,7 @@
 #include "third_party/WebKit/public/web/WebElement.h"
 #include "third_party/WebKit/public/web/WebFrame.h"
 #include "third_party/WebKit/public/web/WebLocalFrame.h"
+#include "third_party/WebKit/public/web/WebPluginParams.h"
 #include "third_party/WebKit/public/web/WebPrerendererClient.h"
 #include "third_party/WebKit/public/web/WebRuntimeFeatures.h"
 #include "third_party/WebKit/public/web/WebSecurityPolicy.h"
@@ -124,33 +122,6 @@ class CefPrerendererClient : public content::RenderViewObserver,
   void willAddPrerender(blink::WebPrerender* prerender) override {}
   bool isPrefetchOnly() override { return false; }
 };
-
-void AppendParams(const std::vector<base::string16>& additional_names,
-                  const std::vector<base::string16>& additional_values,
-                  blink::WebVector<blink::WebString>* existing_names,
-                  blink::WebVector<blink::WebString>* existing_values) {
-  DCHECK(additional_names.size() == additional_values.size());
-  DCHECK(existing_names->size() == existing_values->size());
-
-  size_t existing_size = existing_names->size();
-  size_t total_size = existing_size + additional_names.size();
-
-  blink::WebVector<blink::WebString> names(total_size);
-  blink::WebVector<blink::WebString> values(total_size);
-
-  for (size_t i = 0; i < existing_size; ++i) {
-    names[i] = (*existing_names)[i];
-    values[i] = (*existing_values)[i];
-  }
-
-  for (size_t i = 0; i < additional_names.size(); ++i) {
-    names[existing_size + i] = additional_names[i];
-    values[existing_size + i] = additional_values[i];
-  }
-
-  existing_names->swap(names);
-  existing_values->swap(values);
-}
 
 }  // namespace
 
@@ -433,7 +404,6 @@ void CefContentRendererClient::RenderThreadStarted() {
 void CefContentRendererClient::RenderFrameCreated(
     content::RenderFrame* render_frame) {
   new CefRenderFrameObserver(render_frame);
-  new CefPepperHelper(render_frame);
 
   BrowserCreated(render_frame->GetRenderView(), render_frame);
 }
@@ -591,146 +561,7 @@ blink::WebPlugin* CefContentRendererClient::CreatePlugin(
     blink::WebLocalFrame* frame,
     const blink::WebPluginParams& original_params,
     const CefViewHostMsg_GetPluginInfo_Output& output) {
-  const content::WebPluginInfo& info = output.plugin;
-  const std::string& actual_mime_type = output.actual_mime_type;
-  const base::string16& group_name = output.group_name;
-  const std::string& identifier = output.group_identifier;
-  CefViewHostMsg_GetPluginInfo_Status status = output.status;
-  GURL url(original_params.url);
-  std::string orig_mime_type = original_params.mimeType.utf8();
-  CefPluginPlaceholder* placeholder = NULL;
-
-  // If the browser plugin is to be enabled, this should be handled by the
-  // renderer, so the code won't reach here due to the early exit in
-  // OverrideCreatePlugin.
-  if (status == CefViewHostMsg_GetPluginInfo_Status::kNotFound ||
-      orig_mime_type == content::kBrowserPluginMimeType) {
-    placeholder = CefPluginPlaceholder::CreateLoadableMissingPlugin(
-        render_frame, frame, original_params);
-  } else {
-    // TODO(bauerb): This should be in content/.
-    blink::WebPluginParams params(original_params);
-    for (size_t i = 0; i < info.mime_types.size(); ++i) {
-      if (info.mime_types[i].mime_type == actual_mime_type) {
-        AppendParams(info.mime_types[i].additional_param_names,
-                     info.mime_types[i].additional_param_values,
-                     &params.attributeNames, &params.attributeValues);
-        break;
-      }
-    }
-    if (params.mimeType.isNull() && (actual_mime_type.size() > 0)) {
-      // Webkit might say that mime type is null while we already know the
-      // actual mime type via CefViewHostMsg_GetPluginInfo. In that case
-      // we should use what we know since WebpluginDelegateProxy does some
-      // specific initializations based on this information.
-      params.mimeType = blink::WebString::fromUTF8(actual_mime_type.c_str());
-    }
-
-    auto create_blocked_plugin = [&render_frame, &frame, &params, &info,
-                                  &identifier, &group_name](
-        int template_id, const base::string16& message) {
-      return CefPluginPlaceholder::CreateBlockedPlugin(
-          render_frame, frame, params, info, identifier, group_name,
-          template_id, message, PowerSaverInfo());
-    };
-    switch (status) {
-      case CefViewHostMsg_GetPluginInfo_Status::kNotFound: {
-        NOTREACHED();
-        break;
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kAllowed:
-      case CefViewHostMsg_GetPluginInfo_Status::kPlayImportantContent: {
-        // Delay loading plugins if prerendering.
-        // TODO(mmenke):  In the case of prerendering, feed into
-        //                CefContentRendererClient::CreatePlugin instead, to
-        //                reduce the chance of future regressions.
-        bool is_prerendering = false;
-        bool power_saver_setting_on =
-            status ==
-            CefViewHostMsg_GetPluginInfo_Status::kPlayImportantContent;
-
-        PowerSaverInfo power_saver_info =
-            PowerSaverInfo::Get(render_frame, power_saver_setting_on, params,
-                                info, frame->document().url());
-        if (power_saver_info.blocked_for_background_tab || is_prerendering ||
-            !power_saver_info.poster_attribute.empty()) {
-          placeholder = CefPluginPlaceholder::CreateBlockedPlugin(
-              render_frame, frame, params, info, identifier, group_name,
-              power_saver_info.poster_attribute.empty()
-                  ? IDR_BLOCKED_PLUGIN_HTML
-                  : IDR_PLUGIN_POSTER_HTML,
-              l10n_util::GetStringFUTF16(IDS_PLUGIN_BLOCKED, group_name),
-              power_saver_info);
-          placeholder->set_blocked_for_prerendering(is_prerendering);
-          placeholder->AllowLoading();
-          break;
-        }
-
-        std::unique_ptr<content::PluginInstanceThrottler> throttler;
-        if (power_saver_info.power_saver_enabled) {
-          throttler = content::PluginInstanceThrottler::Create(
-              content::RenderFrame::DONT_RECORD_DECISION);
-          // PluginPreroller manages its own lifetime.
-          new CefPluginPreroller(
-              render_frame, frame, params, info, identifier, group_name,
-              l10n_util::GetStringFUTF16(IDS_PLUGIN_BLOCKED, group_name),
-              throttler.get());
-        }
-
-        return render_frame->CreatePlugin(frame, info, params,
-                                          std::move(throttler));
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kDisabled: {
-        // Intentionally using the blocked plugin resources instead of the
-        // disabled plugin resources. This provides better messaging (no link to
-        // chrome://plugins) and adds testing support.
-        placeholder = create_blocked_plugin(
-            IDR_BLOCKED_PLUGIN_HTML,
-            l10n_util::GetStringFUTF16(IDS_PLUGIN_BLOCKED_BY_POLICY,
-                                       group_name));
-        break;
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kOutdatedBlocked: {
-        NOTREACHED() << "Plugin installation is not supported.";
-        break;
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kOutdatedDisallowed: {
-        placeholder = create_blocked_plugin(
-            IDR_BLOCKED_PLUGIN_HTML,
-            l10n_util::GetStringFUTF16(IDS_PLUGIN_OUTDATED, group_name));
-        break;
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kUnauthorized: {
-        placeholder = create_blocked_plugin(
-            IDR_BLOCKED_PLUGIN_HTML,
-            l10n_util::GetStringFUTF16(IDS_PLUGIN_NOT_AUTHORIZED, group_name));
-        placeholder->AllowLoading();
-        break;
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kBlocked: {
-        placeholder = create_blocked_plugin(
-            IDR_BLOCKED_PLUGIN_HTML,
-            l10n_util::GetStringFUTF16(IDS_PLUGIN_BLOCKED, group_name));
-        placeholder->AllowLoading();
-        content::RenderThread::Get()->RecordAction(
-            base::UserMetricsAction("Plugin_Blocked"));
-        break;
-      }
-      case CefViewHostMsg_GetPluginInfo_Status::kBlockedByPolicy: {
-        placeholder = create_blocked_plugin(
-            IDR_BLOCKED_PLUGIN_HTML,
-            l10n_util::GetStringFUTF16(IDS_PLUGIN_BLOCKED_BY_POLICY,
-                                       group_name));
-        content::RenderThread::Get()->RecordAction(
-            base::UserMetricsAction("Plugin_BlockedByPolicy"));
-        break;
-      }
-      default:
-        break;
-    }
-  }
-  placeholder->SetStatus(status);
-  return placeholder->plugin();
+  return NULL;
 }
 
 void CefContentRendererClient::BrowserCreated(

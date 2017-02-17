@@ -21,11 +21,6 @@
 #include "services/shell/public/cpp/interface_registry.h"
 #include "third_party/WebKit/public/web/WebKit.h"
 
-#if defined(OS_POSIX) && defined(ENABLE_PLUGINS)
-#include "base/files/file_path.h"
-#include "content/common/plugin_list.h"
-#endif
-
 namespace content {
 
 namespace {

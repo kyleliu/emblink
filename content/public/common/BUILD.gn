@@ -158,8 +158,6 @@ source_set("common_sources") {
     "page_state.h",
     "page_type.h",
     "page_zoom.h",
-    "pepper_plugin_info.cc",
-    "pepper_plugin_info.h",
     "persistent_notification_status.h",
     "platform_notification_data.cc",
     "platform_notification_data.h",
@@ -251,7 +249,6 @@ source_set("common_sources") {
     "//media",
     "//mojo/common",
     "//net",
-    "//ppapi/c",
     "//services/shell/public/cpp",
     "//skia",
     "//storage/common",
@@ -270,13 +267,6 @@ source_set("common_sources") {
     "//content/common",
     "//content/common:mojo_bindings_cpp_sources",
   ]
-
-  if (!enable_plugins) {
-    sources -= [
-      "pepper_plugin_info.cc",
-      "pepper_plugin_info.h",
-    ]
-  }
 
   if (enable_webrtc) {
     sources += [

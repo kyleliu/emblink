@@ -66,10 +66,6 @@ template("implement_content_app") {
     ]
   }
 
-  if (is_linux && enable_plugins) {
-    content_app_deps += [ "//content/ppapi_plugin:ppapi_plugin_sources" ]
-  }
-
   if (!is_multi_dll_chrome) {
     content_app_deps += [ "//content/gpu:gpu_sources" ]
   }

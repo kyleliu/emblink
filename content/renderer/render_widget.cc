@@ -43,7 +43,6 @@
 #include "content/renderer/gpu/render_widget_compositor.h"
 #include "content/renderer/ime_event_guard.h"
 #include "content/renderer/input/input_handler_manager.h"
-#include "content/renderer/pepper/pepper_plugin_instance_impl.h"
 #include "content/renderer/render_frame_impl.h"
 #include "content/renderer/render_frame_proxy.h"
 #include "content/renderer/render_process.h"
@@ -268,11 +267,11 @@ RenderWidget::RenderWidget(CompositorDependencies* compositor_deps,
       frame_swap_message_queue_(new FrameSwapMessageQueue()),
       resizing_mode_selector_(new ResizingModeSelector()),
       has_host_context_menu_location_(false),
-      has_focus_(false),
+      has_focus_(false)
 #if defined(OS_MACOSX)
-      text_input_client_observer_(new TextInputClientObserver(this)),
+      , text_input_client_observer_(new TextInputClientObserver(this))
 #endif
-      focused_pepper_plugin_(nullptr) {
+{
   if (!swapped_out)
     RenderProcess::current()->AddRefProcess();
   DCHECK(RenderThread::Get());
@@ -1436,13 +1435,6 @@ void RenderWidget::OnImeSetComposition(
     const std::vector<WebCompositionUnderline>& underlines,
     const gfx::Range& replacement_range,
     int selection_start, int selection_end) {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_) {
-    focused_pepper_plugin_->render_frame()->OnImeSetComposition(
-        text, underlines, selection_start, selection_end);
-    return;
-  }
-#endif
   if (replacement_range.IsValid()) {
     GetWebWidget()->applyReplacementRange(
         WebRange(replacement_range.start(), replacement_range.length()));
@@ -1465,13 +1457,6 @@ void RenderWidget::OnImeSetComposition(
 void RenderWidget::OnImeCommitText(const base::string16& text,
                                    const gfx::Range& replacement_range,
                                    int relative_cursor_pos) {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_) {
-    focused_pepper_plugin_->render_frame()->OnImeCommitText(
-        text, replacement_range, relative_cursor_pos);
-    return;
-  }
-#endif
   if (replacement_range.IsValid()) {
     GetWebWidget()->applyReplacementRange(
         WebRange(replacement_range.start(), replacement_range.length()));
@@ -1487,14 +1472,6 @@ void RenderWidget::OnImeCommitText(const base::string16& text,
 }
 
 void RenderWidget::OnImeFinishComposingText(bool keep_selection) {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_) {
-    focused_pepper_plugin_->render_frame()->OnImeFinishComposingText(
-        keep_selection);
-    return;
-  }
-#endif
-
   if (!ShouldHandleImeEvent())
     return;
   ImeEventGuard guard(this);
@@ -1578,10 +1555,6 @@ void RenderWidget::showImeIfNeeded() {
 }
 
 ui::TextInputType RenderWidget::GetTextInputType() {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_)
-    return focused_pepper_plugin_->text_input_type();
-#endif
   if (GetWebWidget())
     return WebKitToUiTextInputType(GetWebWidget()->textInputType());
   return ui::TEXT_INPUT_TYPE_NONE;
@@ -1810,19 +1783,6 @@ void RenderWidget::OnImeEventGuardFinish(ImeEventGuard* guard) {
 }
 
 void RenderWidget::GetSelectionBounds(gfx::Rect* focus, gfx::Rect* anchor) {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_) {
-    // TODO(kinaba) http://crbug.com/101101
-    // Current Pepper IME API does not handle selection bounds. So we simply
-    // use the caret position as an empty range for now. It will be updated
-    // after Pepper API equips features related to surrounding text retrieval.
-    blink::WebRect caret(focused_pepper_plugin_->GetCaretBounds());
-    convertViewportToWindow(&caret);
-    *focus = caret;
-    *anchor = caret;
-    return;
-  }
-#endif
   WebRect focus_webrect;
   WebRect anchor_webrect;
   GetWebWidget()->selectionBounds(focus_webrect, anchor_webrect);
@@ -1934,11 +1894,6 @@ void RenderWidget::GetCompositionCharacterBounds(
   DCHECK(bounds);
   bounds->clear();
 
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_)
-    return;
-#endif
-
   if (!GetWebWidget())
     return;
   blink::WebVector<blink::WebRect> bounds_from_blink;
@@ -1952,10 +1907,6 @@ void RenderWidget::GetCompositionCharacterBounds(
 }
 
 void RenderWidget::GetCompositionRange(gfx::Range* range) {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_)
-    return;
-#endif
   WebRange web_range = GetWebWidget()->compositionRange();
   if (web_range.isNull()) {
     *range = gfx::Range::InvalidRange();
@@ -1980,10 +1931,6 @@ bool RenderWidget::ShouldUpdateCompositionInfo(
 }
 
 bool RenderWidget::CanComposeInline() {
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_)
-    return focused_pepper_plugin_->IsPluginAcceptingCompositionEvents();
-#endif
   return true;
 }
 

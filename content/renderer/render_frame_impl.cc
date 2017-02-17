@@ -86,7 +86,6 @@
 #include "content/public/renderer/document_state.h"
 #include "content/public/renderer/navigation_state.h"
 #include "content/public/renderer/render_frame_observer.h"
-#include "content/public/renderer/renderer_ppapi_host.h"
 #include "content/renderer/accessibility/render_accessibility_impl.h"
 #include "content/renderer/bluetooth/web_bluetooth_impl.h"
 #include "content/renderer/browser_plugin/browser_plugin.h"
@@ -117,15 +116,12 @@
 #include "content/renderer/mojo/interface_provider_js_wrapper.h"
 #include "content/renderer/mojo_bindings_controller.h"
 #include "content/renderer/navigation_state_impl.h"
-#include "content/renderer/pepper/pepper_audio_controller.h"
-#include "content/renderer/pepper/plugin_instance_throttler_impl.h"
 #include "content/renderer/presentation/presentation_dispatcher.h"
 #include "content/renderer/push_messaging/push_messaging_dispatcher.h"
 #include "content/renderer/render_frame_proxy.h"
 #include "content/renderer/render_process.h"
 #include "content/renderer/render_thread_impl.h"
 #include "content/renderer/render_view_impl.h"
-#include "content/renderer/render_widget_fullscreen_pepper.h"
 #include "content/renderer/renderer_webapplicationcachehost_impl.h"
 #include "content/renderer/renderer_webcolorchooser_impl.h"
 #include "content/renderer/savable_resources.h"
@@ -203,26 +199,9 @@
 #include "url/url_constants.h"
 #include "url/url_util.h"
 
-#if defined(ENABLE_PLUGINS)
-#include "content/renderer/pepper/pepper_browser_connection.h"
-#include "content/renderer/pepper/pepper_plugin_instance_impl.h"
-#include "content/renderer/pepper/pepper_plugin_registry.h"
-#include "content/renderer/pepper/pepper_webplugin_impl.h"
-#include "content/renderer/pepper/plugin_module.h"
-#endif
-
-#if defined(ENABLE_WEBRTC)
-#include "content/renderer/media/rtc_peer_connection_handler.h"
-#endif
-
 #if defined(OS_ANDROID)
 #include <cpu-features.h>
 #include "third_party/WebKit/public/platform/WebFloatPoint.h"
-#endif
-
-#if defined(ENABLE_PEPPER_CDMS)
-#include "content/renderer/media/cdm/pepper_cdm_wrapper_impl.h"
-#include "content/renderer/media/cdm/render_cdm_factory.h"
 #endif
 
 #if defined(ENABLE_MOJO_MEDIA)
@@ -1029,10 +1008,6 @@ RenderFrameImpl::RenderFrameImpl(const CreateParams& params)
       render_view_(params.render_view->AsWeakPtr()),
       routing_id_(params.routing_id),
       proxy_routing_id_(MSG_ROUTING_NONE),
-#if defined(ENABLE_PLUGINS)
-      plugin_power_saver_helper_(nullptr),
-      plugin_find_handler_(nullptr),
-#endif
       cookie_jar_(this),
       selection_text_offset_(0),
       selection_range_(gfx::Range::InvalidRange()),
@@ -1053,10 +1028,6 @@ RenderFrameImpl::RenderFrameImpl(const CreateParams& params)
       is_pasting_(false),
       suppress_further_dialogs_(false),
       blame_context_(nullptr),
-#if defined(ENABLE_PLUGINS)
-      focused_pepper_plugin_(nullptr),
-      pepper_last_mouse_event_target_(nullptr),
-#endif
       frame_binding_(this),
       has_accessed_initial_document_(false),
       weak_factory_(this) {
@@ -1081,11 +1052,6 @@ RenderFrameImpl::RenderFrameImpl(const CreateParams& params)
 
   // Everything below subclasses RenderFrameObserver and is automatically
   // deleted when the RenderFrame gets deleted.
-
-#if defined(ENABLE_PLUGINS)
-  // Manages its own lifetime.
-  plugin_power_saver_helper_ = new PluginPowerSaverHelper(this);
-#endif
 
   manifest_manager_ = new ManifestManager(this);
 }
@@ -1158,9 +1124,6 @@ void RenderFrameImpl::Initialize() {
 
   MaybeEnableMojoBindings();
 
-#if defined(ENABLE_PLUGINS)
-  new PepperBrowserConnection(this);
-#endif
   new SharedWorkerRepository(this);
 
   if (IsLocalRoot()) {
@@ -1196,212 +1159,6 @@ RenderWidget* RenderFrameImpl::GetRenderWidget() {
       RenderFrameImpl::FromWebFrame(frame_->localRoot());
   return local_root->render_widget_.get();
 }
-
-#if defined(ENABLE_PLUGINS)
-void RenderFrameImpl::PepperPluginCreated(RendererPpapiHost* host) {
-  FOR_EACH_OBSERVER(RenderFrameObserver, observers_,
-                    DidCreatePepperPlugin(host));
-}
-
-void RenderFrameImpl::PepperDidChangeCursor(
-    PepperPluginInstanceImpl* instance,
-    const blink::WebCursorInfo& cursor) {
-  // Update the cursor appearance immediately if the requesting plugin is the
-  // one which receives the last mouse event. Otherwise, the new cursor won't be
-  // picked up until the plugin gets the next input event. That is bad if, e.g.,
-  // the plugin would like to set an invisible cursor when there isn't any user
-  // input for a while.
-  if (instance == pepper_last_mouse_event_target_)
-    GetRenderWidget()->didChangeCursor(cursor);
-}
-
-void RenderFrameImpl::PepperDidReceiveMouseEvent(
-    PepperPluginInstanceImpl* instance) {
-  set_pepper_last_mouse_event_target(instance);
-}
-
-void RenderFrameImpl::PepperTextInputTypeChanged(
-    PepperPluginInstanceImpl* instance) {
-  if (instance != focused_pepper_plugin_)
-    return;
-
-  GetRenderWidget()->UpdateTextInputState(ShowIme::HIDE_IME,
-                                          ChangeSource::FROM_NON_IME);
-
-  FocusedNodeChangedForAccessibility(WebNode());
-}
-
-void RenderFrameImpl::PepperCaretPositionChanged(
-    PepperPluginInstanceImpl* instance) {
-  if (instance != focused_pepper_plugin_)
-    return;
-  GetRenderWidget()->UpdateSelectionBounds();
-}
-
-void RenderFrameImpl::PepperCancelComposition(
-    PepperPluginInstanceImpl* instance) {
-  if (instance != focused_pepper_plugin_)
-    return;
-  Send(new InputHostMsg_ImeCancelComposition(render_view_->GetRoutingID()));
-#if defined(OS_MACOSX) || defined(USE_AURA)
-  GetRenderWidget()->UpdateCompositionInfo(
-      false /* not an immediate request */);
-#endif
-}
-
-void RenderFrameImpl::PepperSelectionChanged(
-    PepperPluginInstanceImpl* instance) {
-  if (instance != focused_pepper_plugin_)
-    return;
-  SyncSelectionIfRequired();
-}
-
-RenderWidgetFullscreenPepper* RenderFrameImpl::CreatePepperFullscreenContainer(
-    PepperPluginInstanceImpl* plugin) {
-  GURL active_url;
-  if (render_view_->webview())
-    active_url = render_view()->GetURLForGraphicsContext3D();
-  RenderWidgetFullscreenPepper* widget = RenderWidgetFullscreenPepper::Create(
-      render_view()->routing_id(), GetRenderWidget()->compositor_deps(),
-      plugin, active_url, GetRenderWidget()->screen_info());
-  widget->show(blink::WebNavigationPolicyIgnore);
-  return widget;
-}
-
-bool RenderFrameImpl::IsPepperAcceptingCompositionEvents() const {
-  if (!focused_pepper_plugin_)
-    return false;
-  return focused_pepper_plugin_->IsPluginAcceptingCompositionEvents();
-}
-
-void RenderFrameImpl::PluginCrashed(const base::FilePath& plugin_path,
-                                   base::ProcessId plugin_pid) {
-  // TODO(jam): dispatch this IPC in RenderFrameHost and switch to use
-  // routing_id_ as a result.
-  Send(new FrameHostMsg_PluginCrashed(routing_id_, plugin_path, plugin_pid));
-}
-
-void RenderFrameImpl::SimulateImeSetComposition(
-    const base::string16& text,
-    const std::vector<blink::WebCompositionUnderline>& underlines,
-    int selection_start,
-    int selection_end) {
-  render_view_->OnImeSetComposition(
-      text, underlines, gfx::Range::InvalidRange(),
-      selection_start, selection_end);
-}
-
-void RenderFrameImpl::SimulateImeCommitText(
-    const base::string16& text,
-    const gfx::Range& replacement_range) {
-  render_view_->OnImeCommitText(text, replacement_range, 0);
-}
-
-void RenderFrameImpl::SimulateImeFinishComposingText(bool keep_selection) {
-  render_view_->OnImeFinishComposingText(keep_selection);
-}
-
-void RenderFrameImpl::OnImeSetComposition(
-    const base::string16& text,
-    const std::vector<blink::WebCompositionUnderline>& underlines,
-    int selection_start,
-    int selection_end) {
-  // When a PPAPI plugin has focus, we bypass WebKit.
-  if (!IsPepperAcceptingCompositionEvents()) {
-    pepper_composition_text_ = text;
-  } else {
-    // TODO(kinaba) currently all composition events are sent directly to
-    // plugins. Use DOM event mechanism after WebKit is made aware about
-    // plugins that support composition.
-    // The code below mimics the behavior of WebCore::Editor::setComposition.
-
-    // Empty -> nonempty: composition started.
-    if (pepper_composition_text_.empty() && !text.empty()) {
-      focused_pepper_plugin_->HandleCompositionStart(base::string16());
-    }
-    // Nonempty -> empty: composition canceled.
-    if (!pepper_composition_text_.empty() && text.empty()) {
-      focused_pepper_plugin_->HandleCompositionEnd(base::string16());
-    }
-    pepper_composition_text_ = text;
-    // Nonempty: composition is ongoing.
-    if (!pepper_composition_text_.empty()) {
-      focused_pepper_plugin_->HandleCompositionUpdate(
-          pepper_composition_text_, underlines, selection_start, selection_end);
-    }
-  }
-}
-
-void RenderFrameImpl::OnImeCommitText(const base::string16& text,
-                                      const gfx::Range& replacement_range,
-                                      int relative_cursor_pos) {
-  if (text.empty())
-    return;
-
-  if (!IsPepperAcceptingCompositionEvents()) {
-    base::i18n::UTF16CharIterator iterator(&text);
-    int32_t i = 0;
-    while (iterator.Advance()) {
-      blink::WebKeyboardEvent char_event;
-      char_event.type = blink::WebInputEvent::Char;
-      char_event.timeStampSeconds = base::Time::Now().ToDoubleT();
-      char_event.modifiers = 0;
-      char_event.windowsKeyCode = text[i];
-      char_event.nativeKeyCode = text[i];
-
-      const int32_t char_start = i;
-      for (; i < iterator.array_pos(); ++i) {
-        char_event.text[i - char_start] = text[i];
-        char_event.unmodifiedText[i - char_start] = text[i];
-      }
-
-      if (GetRenderWidget()->GetWebWidget())
-        GetRenderWidget()->GetWebWidget()->handleInputEvent(char_event);
-    }
-  } else {
-    // Mimics the order of events sent by WebKit.
-    // See WebCore::Editor::setComposition() for the corresponding code.
-    focused_pepper_plugin_->HandleCompositionEnd(text);
-    focused_pepper_plugin_->HandleTextInput(text);
-  }
-  pepper_composition_text_.clear();
-}
-
-void RenderFrameImpl::OnImeFinishComposingText(bool keep_selection) {
-  const base::string16& text = pepper_composition_text_;
-
-  if (text.empty())
-    return;
-
-  if (!IsPepperAcceptingCompositionEvents()) {
-    base::i18n::UTF16CharIterator iterator(&text);
-    int32_t i = 0;
-    while (iterator.Advance()) {
-      blink::WebKeyboardEvent char_event;
-      char_event.type = blink::WebInputEvent::Char;
-      char_event.timeStampSeconds = base::Time::Now().ToDoubleT();
-      char_event.modifiers = 0;
-      char_event.windowsKeyCode = text[i];
-      char_event.nativeKeyCode = text[i];
-
-      const int32_t char_start = i;
-      for (; i < iterator.array_pos(); ++i) {
-        char_event.text[i - char_start] = text[i];
-        char_event.unmodifiedText[i - char_start] = text[i];
-      }
-
-      if (GetRenderWidget()->GetWebWidget())
-        GetRenderWidget()->GetWebWidget()->handleInputEvent(char_event);
-    }
-  } else {
-    // Mimics the order of events sent by WebKit.
-    // See WebCore::Editor::setComposition() for the corresponding code.
-    focused_pepper_plugin_->HandleCompositionEnd(text);
-    focused_pepper_plugin_->HandleTextInput(text);
-  }
-  pepper_composition_text_.clear();
-}
-#endif  // defined(ENABLE_PLUGINS)
 
 MediaStreamDispatcher* RenderFrameImpl::GetMediaStreamDispatcher() {
   if (!web_user_media_client_)
@@ -1461,9 +1218,6 @@ bool RenderFrameImpl::OnMessageReceived(const IPC::Message& msg) {
     IPC_MESSAGE_HANDLER(FrameMsg_ContextMenuClosed, OnContextMenuClosed)
     IPC_MESSAGE_HANDLER(FrameMsg_CustomContextMenuAction,
                         OnCustomContextMenuAction)
-#if defined(ENABLE_PLUGINS)
-    IPC_MESSAGE_HANDLER(FrameMsg_SetPepperVolume, OnSetPepperVolume)
-#endif  //defined(ENABLE_PLUGINS)
     IPC_MESSAGE_HANDLER(InputMsg_Undo, OnUndo)
     IPC_MESSAGE_HANDLER(InputMsg_Redo, OnRedo)
     IPC_MESSAGE_HANDLER(InputMsg_Cut, OnCut)
@@ -2305,16 +2059,6 @@ void RenderFrameImpl::DidCommitCompositorFrame() {
 }
 
 void RenderFrameImpl::DidCommitAndDrawCompositorFrame() {
-#if defined(ENABLE_PLUGINS)
-  // Notify all instances that we painted.  The same caveats apply as for
-  // ViewFlushedPaint regarding instances closing themselves, so we take
-  // similar precautions.
-  PepperPluginSet plugins = active_pepper_instances_;
-  for (auto* plugin : plugins) {
-    if (active_pepper_instances_.find(plugin) != active_pepper_instances_.end())
-      plugin->ViewInitiatedPaint();
-  }
-#endif
 }
 
 RenderView* RenderFrameImpl::GetRenderView() {
@@ -2364,31 +2108,6 @@ blink::WebPlugin* RenderFrameImpl::CreatePlugin(
     const blink::WebPluginParams& params,
     std::unique_ptr<content::PluginInstanceThrottler> throttler) {
   DCHECK_EQ(frame_, frame);
-#if defined(ENABLE_PLUGINS)
-  if (info.type == WebPluginInfo::PLUGIN_TYPE_BROWSER_PLUGIN) {
-    return BrowserPluginManager::Get()->CreateBrowserPlugin(
-        this, GetContentClient()
-                  ->renderer()
-                  ->CreateBrowserPluginDelegate(this, params.mimeType.utf8(),
-                                                GURL(params.url))
-                  ->GetWeakPtr());
-  }
-
-  bool pepper_plugin_was_registered = false;
-  scoped_refptr<PluginModule> pepper_module(PluginModule::Create(
-      this, info, &pepper_plugin_was_registered));
-  if (pepper_plugin_was_registered) {
-    if (pepper_module.get()) {
-      return new PepperWebPluginImpl(
-          pepper_module.get(), params, this,
-          base::WrapUnique(
-              static_cast<PluginInstanceThrottlerImpl*>(throttler.release())));
-    }
-  }
-#if defined(OS_CHROMEOS)
-  LOG(WARNING) << "Pepper module/plugin creation failed.";
-#endif
-#endif
   return NULL;
 }
 
@@ -2428,38 +2147,6 @@ RenderFrameImpl::GetRemoteAssociatedInterfaces() {
   }
   return remote_associated_interfaces_.get();
 }
-
-#if defined(ENABLE_PLUGINS)
-void RenderFrameImpl::RegisterPeripheralPlugin(
-    const url::Origin& content_origin,
-    const base::Closure& unthrottle_callback) {
-  return plugin_power_saver_helper_->RegisterPeripheralPlugin(
-      content_origin, unthrottle_callback);
-}
-
-RenderFrame::PeripheralContentStatus
-RenderFrameImpl::GetPeripheralContentStatus(
-    const url::Origin& main_frame_origin,
-    const url::Origin& content_origin,
-    const gfx::Size& unobscured_size,
-    RecordPeripheralDecision record_decision) const {
-  return plugin_power_saver_helper_->GetPeripheralContentStatus(
-      main_frame_origin, content_origin, unobscured_size, record_decision);
-}
-
-void RenderFrameImpl::WhitelistContentOrigin(
-    const url::Origin& content_origin) {
-  return plugin_power_saver_helper_->WhitelistContentOrigin(content_origin);
-}
-
-void RenderFrameImpl::DidStartLoading() {
-  didStartLoading(true);
-}
-
-void RenderFrameImpl::DidStopLoading() {
-  didStopLoading();
-}
-#endif  // defined(ENABLE_PLUGINS)
 
 bool RenderFrameImpl::IsFTPDirectoryListing() {
   WebURLResponseExtraDataImpl* extra_data =
@@ -2569,22 +2256,7 @@ blink::WebPlugin* RenderFrameImpl::createPlugin(
                   ->GetWeakPtr());
   }
 
-#if defined(ENABLE_PLUGINS)
-  WebPluginInfo info;
-  std::string mime_type;
-  bool found = false;
-  Send(new FrameHostMsg_GetPluginInfo(
-      routing_id_, params.url, frame->top()->getSecurityOrigin(),
-      params.mimeType.utf8(), &found, &info, &mime_type));
-  if (!found)
-    return NULL;
-
-  WebPluginParams params_to_use = params;
-  params_to_use.mimeType = WebString::fromUTF8(mime_type);
-  return CreatePlugin(frame, info, params_to_use, nullptr /* throttler */);
-#else
   return NULL;
-#endif  // defined(ENABLE_PLUGINS)
 }
 
 blink::WebMediaPlayer* RenderFrameImpl::createMediaPlayer(
@@ -2823,11 +2495,6 @@ void RenderFrameImpl::frameDetached(blink::WebLocalFrame* frame,
   // the parent frame.  This is different from createChildFrame() which is
   // called on the parent frame.
   DCHECK_EQ(frame_, frame);
-
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_)
-    GetRenderWidget()->set_focused_pepper_plugin(nullptr);
-#endif
 
   FOR_EACH_OBSERVER(RenderFrameObserver, observers_, FrameDetached());
   FOR_EACH_OBSERVER(RenderViewObserver, render_view_->observers(),
@@ -4512,11 +4179,6 @@ void RenderFrameImpl::OnStop() {
 void RenderFrameImpl::WasHidden() {
   FOR_EACH_OBSERVER(RenderFrameObserver, observers_, WasHidden());
 
-#if defined(ENABLE_PLUGINS)
-  for (auto* plugin : active_pepper_instances_)
-    plugin->PageVisibilityChanged(false);
-#endif  // ENABLE_PLUGINS
-
   if (GetWebFrame()->frameWidget()) {
     GetWebFrame()->frameWidget()->setVisibilityState(visibilityState());
   }
@@ -4524,11 +4186,6 @@ void RenderFrameImpl::WasHidden() {
 
 void RenderFrameImpl::WasShown() {
   FOR_EACH_OBSERVER(RenderFrameObserver, observers_, WasShown());
-
-#if defined(ENABLE_PLUGINS)
-  for (auto* plugin : active_pepper_instances_)
-    plugin->PageVisibilityChanged(true);
-#endif  // ENABLE_PLUGINS
 
   if (GetWebFrame()->frameWidget()) {
     GetWebFrame()->frameWidget()->setVisibilityState(visibilityState());
@@ -5685,13 +5342,6 @@ void RenderFrameImpl::SyncSelectionIfRequired() {
   base::string16 text;
   size_t offset;
   gfx::Range range;
-#if defined(ENABLE_PLUGINS)
-  if (focused_pepper_plugin_) {
-    focused_pepper_plugin_->GetSurroundingText(&text, &range);
-    offset = 0;  // Pepper API does not support offset reporting.
-    // TODO(kinaba): cut as needed.
-  } else
-#endif
   {
     WebRange selection =
         GetRenderWidget()->GetWebWidget()->caretOrSelectionRange();
@@ -6131,12 +5781,6 @@ media::CdmFactory* RenderFrameImpl::GetCdmFactory() {
   }
 #endif  //  defined(ENABLE_MOJO_CDM)
 
-#if defined(ENABLE_PEPPER_CDMS)
-  DCHECK(frame_);
-  cdm_factory_.reset(
-      new RenderCdmFactory(base::Bind(&PepperCdmWrapperImpl::Create, frame_)));
-#endif  // defined(ENABLE_PEPPER_CDMS)
-
   return cdm_factory_.get();
 }
 
@@ -6207,11 +5851,6 @@ blink::WebPlugin* RenderFrameImpl::GetWebPluginForFind() {
   if (frame_->document().isPluginDocument())
     return frame_->document().to<WebPluginDocument>().plugin();
 
-#if defined(ENABLE_PLUGINS)
-  if (plugin_find_handler_)
-    return plugin_find_handler_->container()->plugin();
-#endif
-
   return nullptr;
 }
 
@@ -6232,94 +5871,10 @@ void RenderFrameImpl::SendFindReply(int request_id,
                                    final_status_update));
 }
 
-#if defined(ENABLE_PLUGINS)
-void RenderFrameImpl::PepperInstanceCreated(
-    PepperPluginInstanceImpl* instance) {
-  active_pepper_instances_.insert(instance);
-
-  Send(new FrameHostMsg_PepperInstanceCreated(
-      routing_id_, instance->pp_instance()));
-}
-
-void RenderFrameImpl::PepperInstanceDeleted(
-    PepperPluginInstanceImpl* instance) {
-  active_pepper_instances_.erase(instance);
-
-  if (pepper_last_mouse_event_target_ == instance)
-    pepper_last_mouse_event_target_ = nullptr;
-  if (focused_pepper_plugin_ == instance)
-    PepperFocusChanged(instance, false);
-
-  RenderFrameImpl* const render_frame = instance->render_frame();
-  if (render_frame) {
-    render_frame->Send(
-        new FrameHostMsg_PepperInstanceDeleted(
-            render_frame->GetRoutingID(),
-            instance->pp_instance()));
-  }
-}
-
-void RenderFrameImpl::PepperFocusChanged(PepperPluginInstanceImpl* instance,
-                                         bool focused) {
-  if (focused)
-    focused_pepper_plugin_ = instance;
-  else if (focused_pepper_plugin_ == instance)
-    focused_pepper_plugin_ = nullptr;
-
-  GetRenderWidget()->set_focused_pepper_plugin(focused_pepper_plugin_);
-
-  GetRenderWidget()->UpdateTextInputState(ShowIme::HIDE_IME,
-                                          ChangeSource::FROM_NON_IME);
-  GetRenderWidget()->UpdateSelectionBounds();
-}
-
-void RenderFrameImpl::PepperStartsPlayback(PepperPluginInstanceImpl* instance) {
-  RenderFrameImpl* const render_frame = instance->render_frame();
-  if (render_frame) {
-    render_frame->Send(
-        new FrameHostMsg_PepperStartsPlayback(
-            render_frame->GetRoutingID(),
-            instance->pp_instance()));
-  }
-}
-
-void RenderFrameImpl::PepperStopsPlayback(PepperPluginInstanceImpl* instance) {
-  RenderFrameImpl* const render_frame = instance->render_frame();
-  if (render_frame) {
-    render_frame->Send(
-        new FrameHostMsg_PepperStopsPlayback(
-            render_frame->GetRoutingID(),
-            instance->pp_instance()));
-  }
-}
-
-void RenderFrameImpl::OnSetPepperVolume(int32_t pp_instance, double volume) {
-  PepperPluginInstanceImpl* instance = static_cast<PepperPluginInstanceImpl*>(
-      PepperPluginInstance::Get(pp_instance));
-  if (instance)
-    instance->audio_controller().SetVolume(volume);
-}
-#endif  // ENABLE_PLUGINS
-
 void RenderFrameImpl::RenderWidgetSetFocus(bool enable) {
-#if defined(ENABLE_PLUGINS)
-  // Notify all Pepper plugins.
-  for (auto* plugin : active_pepper_instances_)
-    plugin->SetContentAreaFocus(enable);
-#endif
 }
 
 void RenderFrameImpl::RenderWidgetWillHandleMouseEvent() {
-#if defined(ENABLE_PLUGINS)
-  // This method is called for every mouse event that the RenderWidget receives.
-  // And then the mouse event is forwarded to blink, which dispatches it to the
-  // event target. Potentially a Pepper plugin will receive the event.
-  // In order to tell whether a plugin gets the last mouse event and which it
-  // is, we set |pepper_last_mouse_event_target_| to null here. If a plugin gets
-  // the event, it will notify us via DidReceiveMouseEvent() and set itself as
-  // |pepper_last_mouse_event_target_|.
-  pepper_last_mouse_event_target_ = nullptr;
-#endif
 }
 
 }  // namespace content

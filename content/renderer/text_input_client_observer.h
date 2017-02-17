@@ -41,13 +41,6 @@ class TextInputClientObserver : public IPC::Listener, public IPC::Sender {
 
   blink::WebLocalFrame* GetFocusedFrame() const;
 
-#if defined(ENABLE_PLUGINS)
-  // Returns the currently focused pepper plugin on the page. The expectation is
-  // that the focused pepper plugin is inside a frame whose local root is equal
-  // to GetWebFrameWidget()->localRoot().
-  PepperPluginInstanceImpl* GetFocusedPepperPlugin() const;
-#endif
-
   // IPC Message handlers:
   void OnStringAtPoint(gfx::Point point);
   void OnCharacterIndexForPoint(gfx::Point point);

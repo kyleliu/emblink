@@ -15,7 +15,6 @@ group("child") {
     # if (!is_android) {
       public_deps += [
         "//content/gpu",
-        "//content/ppapi_plugin",
       ]
     # }
   }

@@ -25,7 +25,6 @@
 #include "content/public/browser/download_item.h"
 #include "content/public/browser/download_save_info.h"
 #include "content/public/browser/download_url_parameters.h"
-#include "content/public/browser/plugin_service.h"
 #include "content/public/browser/resource_context.h"
 #include "content/public/browser/resource_dispatcher_host_delegate.h"
 #include "content/public/common/resource_response.h"
@@ -74,9 +73,6 @@ MimeSniffingResourceHandler::MimeSniffingResourceHandler(
     : LayeredResourceHandler(request, std::move(next_handler)),
       state_(STATE_STARTING),
       host_(host),
-#if defined(ENABLE_PLUGINS)
-      plugin_service_(plugin_service),
-#endif
       must_download_(false),
       must_download_is_set_(false),
       read_buffer_size_(0),
@@ -425,45 +421,6 @@ bool MimeSniffingResourceHandler::CheckForPluginHandler(
     bool* defer,
     bool* handled_by_plugin) {
   *handled_by_plugin = false;
-#if defined(ENABLE_PLUGINS)
-  ResourceRequestInfoImpl* info = GetRequestInfo();
-  bool allow_wildcard = false;
-  bool stale;
-  WebPluginInfo plugin;
-  bool has_plugin = plugin_service_->GetPluginInfo(
-      info->GetChildID(), info->GetRenderFrameID(), info->GetContext(),
-      request()->url(), url::Origin(), response_->head.mime_type,
-      allow_wildcard, &stale, &plugin, NULL);
-
-  if (stale) {
-    // Refresh the plugins asynchronously.
-    plugin_service_->GetPlugins(
-        base::Bind(&MimeSniffingResourceHandler::OnPluginsLoaded,
-                   weak_ptr_factory_.GetWeakPtr()));
-    request()->LogBlockedBy("MimeSniffingResourceHandler");
-    *defer = true;
-    return true;
-  }
-
-  if (has_plugin && plugin.type != WebPluginInfo::PLUGIN_TYPE_BROWSER_PLUGIN) {
-    *handled_by_plugin = true;
-    return true;
-  }
-
-  // Attempt to intercept the request as a stream.
-  base::FilePath plugin_path;
-  if (has_plugin)
-    plugin_path = plugin.path;
-  std::string payload;
-  std::unique_ptr<ResourceHandler> handler(host_->MaybeInterceptAsStream(
-      plugin_path, request(), response_.get(), &payload));
-  if (handler) {
-    if (!CheckResponseIsNotProvisional())
-      return false;
-    *handled_by_plugin = true;
-    intercepting_handler_->UseNewHandler(std::move(handler), payload);
-  }
-#endif
   return true;
 }
 
